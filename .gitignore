@@ -1,0 +1,5 @@
+.air.toml
+lexa.hcl
+/vendor
+/tmp
+lexa
