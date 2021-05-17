@@ -3,24 +3,17 @@ package api
 import (
 	"context"
 	"io/ioutil"
-	"math/big"
+	"net"
 	"net/http"
-	"sync"
-	"time"
 
 	"os"
 
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
 
 	"github.com/apex/log"
 	"github.com/gorilla/mux"
 	"github.com/kaidyth/lexa/api/mounts"
+	"github.com/kaidyth/lexa/common"
 	"github.com/kaidyth/lexa/middleware"
 	reuseport "github.com/kavu/go_reuseport"
 	"github.com/knadh/koanf"
@@ -75,8 +68,8 @@ func configureRouter(context context.Context) *negroni.Negroni {
 }
 
 // NewRouter defines a new router instance
-func NewRouter(k *koanf.Koanf, wg *sync.WaitGroup, context context.Context) *http.Server {
-	router := configureRouter(context)
+func NewRouter(k *koanf.Koanf, ctx context.Context) *http.Server {
+	router := configureRouter(ctx)
 	port := k.String("tls.port")
 
 	// Force a modern TLS configuration
@@ -97,14 +90,15 @@ func NewRouter(k *koanf.Koanf, wg *sync.WaitGroup, context context.Context) *htt
 		TLSConfig:    cfg,
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 		Handler:      router,
+		BaseContext:  func(_ net.Listener) context.Context { return ctx },
 	}
 
-	server.RegisterOnShutdown(func() {
-		log.Info("Terminating HTTP Server")
-		wg.Done()
-	})
-
 	return server
+}
+
+func Shutdown(ctx context.Context, httpServer *http.Server) error {
+	log.Trace("HTTP Server shutdown")
+	return httpServer.Shutdown(ctx)
 }
 
 // StartServer starts a new HTTP Server
@@ -122,14 +116,14 @@ func StartServer(k *koanf.Koanf, server *http.Server) error {
 			os.Exit(1)
 		}
 
-		cFile, err := ioutil.TempFile(os.TempDir(), "server.key")
+		cFile, err := ioutil.TempFile(os.TempDir(), "server.crt")
 		if err != nil {
 			log.Fatal("Unable to create temporary file")
 			os.Exit(1)
 		}
 
-		ECKey := generateECKey(kFile)
-		generateCert(&ECKey.PublicKey, ECKey, cFile)
+		ECKey := common.GenerateECKey(kFile)
+		common.GenerateCertificate(&ECKey.PublicKey, ECKey, cFile)
 
 		tlsKey = kFile.Name()
 		tlsCrt = cFile.Name()
@@ -161,56 +155,4 @@ func StartServer(k *koanf.Koanf, server *http.Server) error {
 	}
 
 	return server.ListenAndServeTLS(tlsCrt, tlsKey)
-}
-
-func generateECKey(kFile *os.File) (key *ecdsa.PrivateKey) {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		log.Fatal("Failed to generate ECDSA key: %s\n")
-		os.Exit(1)
-	}
-
-	keyDer, err := x509.MarshalECPrivateKey(key)
-	if err != nil {
-		log.Fatal("Failed to generate ECDSA key: %s\n")
-		os.Exit(1)
-	}
-
-	keyBlock := pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: keyDer,
-	}
-
-	pem.Encode(kFile, &keyBlock)
-
-	return
-}
-
-func generateCert(pub, priv interface{}, cFile *os.File) {
-	template := x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject: pkix.Name{
-			CommonName:         "LEXA DEFAULT CERTIFICATE",
-			Organization:       []string{"Kaidyth"},
-			OrganizationalUnit: []string{"Lexa"},
-		},
-		NotBefore: time.Now(),
-		NotAfter:  time.Now().Add(time.Hour * 24 * 30),
-	}
-
-	certDer, err := x509.CreateCertificate(
-		rand.Reader, &template, &template, pub, priv,
-	)
-
-	if err != nil {
-		log.Fatal("Failed to generate self-signed certificate")
-		os.Exit(1)
-	}
-
-	certBlock := pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: certDer,
-	}
-
-	pem.Encode(cFile, &certBlock)
 }

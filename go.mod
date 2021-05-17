@@ -7,6 +7,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/kavu/go_reuseport v1.5.0
 	github.com/knadh/koanf v0.16.0
+	github.com/miekg/dns v1.0.14
 	github.com/rs/xid v1.3.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cobra v1.1.3
