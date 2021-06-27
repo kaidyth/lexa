@@ -143,59 +143,45 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 		log.Trace(fmt.Sprintf("Query for %s %d\n", q.Name, q.Qtype))
 
 		switch q.Qtype {
-		case dns.TypeCNAME:
-			if strings.Contains(q.Name, ".interfaces.") {
-				fqdnWithoutInterfaces := strings.Replace(q.Name, interfaceName+".interfaces.", "", 1)
-				// Only return a CNAME if the itnerface actually exists
-				for _, hostElement := range host.Interfaces.IPv4 {
-					if interfaceName == hostElement.Name {
-						rr, err := dns.NewRR(fmt.Sprintf("%s 0 CNAME %s", q.Name, fqdnWithoutInterfaces))
-						if err == nil {
-							m.Answer = append(m.Answer, rr)
-						}
-					}
-				}
-			} else if strings.Contains(q.Name, ".services.") {
-				//fqdnWithoutInterfaces := strings.Replace(q.Name, serviceName+".services.", "", 1)
-				// Make sure the service exists
-
-			}
 		case dns.TypeA:
-			var address common.InterfaceElement
+			var addresses []common.InterfaceElement
 			if interfaceName == "" && serviceName == "" {
-				address = host.Interfaces.IPv4[0]
+				addresses = append([]common.InterfaceElement{host.Interfaces.IPv4[0]}, addresses...)
 			} else if interfaceName != "" {
-				for _, addresses := range host.Interfaces.IPv4 {
-					if addresses.Name == interfaceName {
-						address = addresses
-						break
+				for _, addr := range host.Interfaces.IPv4 {
+					if addr.Name == interfaceName {
+						addresses = append([]common.InterfaceElement{addr}, addresses...)
 					}
 				}
 			} else if serviceName != "" {
 
 			}
 
-			rr, err := dns.NewRR(fmt.Sprintf("%s 0 A %s", q.Name, address.IP.String()))
-			if err == nil {
-				m.Answer = append(m.Answer, rr)
+			for _, address := range addresses {
+				rr, err := dns.NewRR(fmt.Sprintf("%s 0 A %s", q.Name, address.IP.String()))
+				if err == nil {
+					m.Answer = append(m.Answer, rr)
+				}
 			}
 		case dns.TypeAAAA:
-			var address common.InterfaceElement
+			var addresses []common.InterfaceElement
 			if interfaceName == "" && serviceName == "" {
-				address = host.Interfaces.IPv6[0]
+				addresses = append([]common.InterfaceElement{host.Interfaces.IPv6[0]}, addresses...)
 			} else if interfaceName != "" {
-				for _, addresses := range host.Interfaces.IPv6 {
-					if addresses.Name == interfaceName {
-						address = addresses
-						break
+				for _, addr := range host.Interfaces.IPv6 {
+					if addr.Name == interfaceName {
+						addresses = append([]common.InterfaceElement{addr}, addresses...)
 					}
 				}
 			} else if serviceName != "" {
 
 			}
-			rr, err := dns.NewRR(fmt.Sprintf("%s 0 AAAA %s", q.Name, address.IP.String()))
-			if err == nil {
-				m.Answer = append(m.Answer, rr)
+
+			for _, address := range addresses {
+				rr, err := dns.NewRR(fmt.Sprintf("%s 0 AAAA %s", q.Name, address.IP.String()))
+				if err == nil {
+					m.Answer = append(m.Answer, rr)
+				}
 			}
 		}
 	}
