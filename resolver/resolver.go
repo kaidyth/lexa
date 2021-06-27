@@ -114,17 +114,26 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 		// Filter the specific host data out
 		var host common.Host
 		interfaceName := ""
+		serviceName := ""
 		for _, hostElement := range ds.Hosts {
 			// Search first for the exact hostname
 			if hostElement.Name+"." == q.Name {
 				host = hostElement
 			} else if strings.Contains(q.Name, ".interfaces.") {
 				// If the `.interfaces.` appears, then the user is searching for information for a specific interface
-				// The interface is the first
 				asr := strings.Split(q.Name, ".")
 				interfaceName = asr[0]
 
 				fqdnWithoutInterfaces := strings.Replace(q.Name, interfaceName+".interfaces.", "", 1)
+				if hostElement.Name+"." == fqdnWithoutInterfaces {
+					host = hostElement
+				}
+			} else if strings.Contains(q.Name, ".intserviceserfaces.") {
+				// If the `.interfaces.` appears, then the user is searching for information for a specific interface
+				asr := strings.Split(q.Name, ".")
+				serviceName = asr[0]
+
+				fqdnWithoutInterfaces := strings.Replace(q.Name, serviceName+".services.", "", 1)
 				if hostElement.Name+"." == fqdnWithoutInterfaces {
 					host = hostElement
 				}
@@ -137,24 +146,33 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 		case dns.TypeCNAME:
 			if strings.Contains(q.Name, ".interfaces.") {
 				fqdnWithoutInterfaces := strings.Replace(q.Name, interfaceName+".interfaces.", "", 1)
-				rr, err := dns.NewRR(fmt.Sprintf("%s 0 CNAME %s", q.Name, fqdnWithoutInterfaces))
-				if err == nil {
-					m.Answer = append(m.Answer, rr)
+				// Only return a CNAME if the itnerface actually exists
+				for _, hostElement := range host.Interfaces.IPv4 {
+					if interfaceName == hostElement.Name {
+						rr, err := dns.NewRR(fmt.Sprintf("%s 0 CNAME %s", q.Name, fqdnWithoutInterfaces))
+						if err == nil {
+							m.Answer = append(m.Answer, rr)
+						}
+					}
 				}
 			} else if strings.Contains(q.Name, ".services.") {
-				// TODO Handle Services as a CNAME
+				//fqdnWithoutInterfaces := strings.Replace(q.Name, serviceName+".services.", "", 1)
+				// Make sure the service exists
+
 			}
 		case dns.TypeA:
 			var address common.InterfaceElement
-			if interfaceName == "" {
+			if interfaceName == "" && serviceName == "" {
 				address = host.Interfaces.IPv4[0]
-			} else {
+			} else if interfaceName != "" {
 				for _, addresses := range host.Interfaces.IPv4 {
 					if addresses.Name == interfaceName {
 						address = addresses
 						break
 					}
 				}
+			} else if serviceName != "" {
+
 			}
 
 			rr, err := dns.NewRR(fmt.Sprintf("%s 0 A %s", q.Name, address.IP.String()))
@@ -163,17 +181,18 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 			}
 		case dns.TypeAAAA:
 			var address common.InterfaceElement
-			if interfaceName == "" {
+			if interfaceName == "" && serviceName == "" {
 				address = host.Interfaces.IPv6[0]
-			} else {
+			} else if interfaceName != "" {
 				for _, addresses := range host.Interfaces.IPv6 {
 					if addresses.Name == interfaceName {
 						address = addresses
 						break
 					}
 				}
-			}
+			} else if serviceName != "" {
 
+			}
 			rr, err := dns.NewRR(fmt.Sprintf("%s 0 AAAA %s", q.Name, address.IP.String()))
 			if err == nil {
 				m.Answer = append(m.Answer, rr)
