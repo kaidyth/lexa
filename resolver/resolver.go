@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/apex/log"
 	"github.com/kaidyth/lexa/common"
@@ -13,12 +14,9 @@ import (
 	"github.com/miekg/dns"
 )
 
-var records = map[string]string{
-	"test.lexa.": "192.168.0.2",
-}
-
 // NewResolver creates a new DNS resolver
-func NewResolver(k *koanf.Koanf, ctx context.Context) *dns.Server {
+func NewResolver(ctx context.Context) *dns.Server {
+	k := ctx.Value("koanf").(*koanf.Koanf)
 	port := k.String("dns.port")
 	suffix := k.String("suffix")
 
@@ -34,7 +32,8 @@ func NewResolver(k *koanf.Koanf, ctx context.Context) *dns.Server {
 	return server
 }
 
-func NewDoTResolver(k *koanf.Koanf, ctx context.Context) *dns.Server {
+func NewDoTResolver(ctx context.Context) *dns.Server {
+	k := ctx.Value("koanf").(*koanf.Koanf)
 	suffix := k.String("suffix")
 	port := k.String("dns.tls.port")
 	tlsKey := k.String("dns.tls.key")
@@ -46,7 +45,7 @@ func NewDoTResolver(k *koanf.Koanf, ctx context.Context) *dns.Server {
 
 	// If a TLS certificate and keyy aren't provided, generate one on demand
 	if tlsKey == "" || tlsCrt == "" {
-		log.Warn("Creating temporary self-signed DNS certificate and key")
+		log.Warn("Creating temporary self-signed DOT DNS certificate and key")
 		kFile, err := ioutil.TempFile(os.TempDir(), "server.key")
 		if err != nil {
 			log.Fatal("Unable to create temporary file")
@@ -101,16 +100,83 @@ func StartServer(server *dns.Server) error {
 }
 
 func parseQuery(m *dns.Msg, ctx context.Context) {
+	k := ctx.Value("koanf").(*koanf.Koanf)
+
+	// Iterate over the question
 	for _, q := range m.Question {
+
+		// Grab the data source
+		ds, err := common.NewDataset(k)
+		if err != nil {
+			return
+		}
+
+		// Filter the specific host data out
+		var host common.Host
+		interfaceName := ""
+		for _, hostElement := range ds.Hosts {
+			// Search first for the exact hostname
+			if hostElement.Name+"." == q.Name {
+				host = hostElement
+			} else if strings.Contains(q.Name, ".interfaces.") {
+				// If the `.interfaces.` appears, then the user is searching for information for a specific interface
+				// The interface is the first
+				asr := strings.Split(q.Name, ".")
+				interfaceName = asr[0]
+
+				fqdnWithoutInterfaces := strings.Replace(q.Name, interfaceName+".interfaces.", "", 1)
+				if hostElement.Name+"." == fqdnWithoutInterfaces {
+					host = hostElement
+				}
+			}
+		}
+
+		log.Trace(fmt.Sprintf("Query for %s %d\n", q.Name, q.Qtype))
+
 		switch q.Qtype {
-		case dns.TypeA:
-			log.Trace(fmt.Sprintf("Query for %s\n", q.Name))
-			ip := records[q.Name]
-			if ip != "" {
-				rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, ip))
+		case dns.TypeCNAME:
+			if strings.Contains(q.Name, ".interfaces.") {
+				fqdnWithoutInterfaces := strings.Replace(q.Name, interfaceName+".interfaces.", "", 1)
+				rr, err := dns.NewRR(fmt.Sprintf("%s 0 CNAME %s", q.Name, fqdnWithoutInterfaces))
 				if err == nil {
 					m.Answer = append(m.Answer, rr)
 				}
+			} else if strings.Contains(q.Name, ".services.") {
+				// TODO Handle Services as a CNAME
+			}
+		case dns.TypeA:
+			var address common.InterfaceElement
+			if interfaceName == "" {
+				address = host.Interfaces.IPv4[0]
+			} else {
+				for _, addresses := range host.Interfaces.IPv4 {
+					if addresses.Name == interfaceName {
+						address = addresses
+						break
+					}
+				}
+			}
+
+			rr, err := dns.NewRR(fmt.Sprintf("%s 0 A %s", q.Name, address.IP.String()))
+			if err == nil {
+				m.Answer = append(m.Answer, rr)
+			}
+		case dns.TypeAAAA:
+			var address common.InterfaceElement
+			if interfaceName == "" {
+				address = host.Interfaces.IPv6[0]
+			} else {
+				for _, addresses := range host.Interfaces.IPv6 {
+					if addresses.Name == interfaceName {
+						address = addresses
+						break
+					}
+				}
+			}
+
+			rr, err := dns.NewRR(fmt.Sprintf("%s 0 AAAA %s", q.Name, address.IP.String()))
+			if err == nil {
+				m.Answer = append(m.Answer, rr)
 			}
 		}
 	}

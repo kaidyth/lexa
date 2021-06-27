@@ -68,8 +68,9 @@ func configureRouter(context context.Context) *negroni.Negroni {
 }
 
 // NewRouter defines a new router instance
-func NewRouter(k *koanf.Koanf, ctx context.Context) *http.Server {
+func NewRouter(ctx context.Context) *http.Server {
 	router := configureRouter(ctx)
+	k := ctx.Value("koanf").(*koanf.Koanf)
 	port := k.String("tls.port")
 
 	// Force a modern TLS configuration

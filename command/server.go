@@ -31,9 +31,9 @@ var serverCmd = &cobra.Command{
 		// Create a new waitgroup to allow for paralleization of DNS and API response
 		var wg sync.WaitGroup
 
-		var httpServer = api.NewRouter(k, ctx)
-		var dnsServer = resolver.NewResolver(k, ctx)
-		var dotServer = resolver.NewDoTResolver(k, ctx)
+		var httpServer = api.NewRouter(ctx)
+		var dnsServer = resolver.NewResolver(ctx)
+		var dotServer = resolver.NewDoTResolver(ctx)
 		wg.Add(WAITGROUP_INSTANCES)
 
 		startServers(k, &wg, ctx, provider, httpServer, dnsServer, dotServer)
@@ -69,9 +69,9 @@ func reloadServers(k *koanf.Koanf, ctx context.Context, wg *sync.WaitGroup, http
 		wg.Done()
 	}
 
-	*httpServer = *api.NewRouter(k, ctx)
-	*dnsServer = *resolver.NewResolver(k, ctx)
-	*dotServer = *resolver.NewDoTResolver(k, ctx)
+	*httpServer = *api.NewRouter(ctx)
+	*dnsServer = *resolver.NewResolver(ctx)
+	*dotServer = *resolver.NewDoTResolver(ctx)
 	startServers(k, wg, ctx, provider, httpServer, dnsServer, dotServer)
 }
 

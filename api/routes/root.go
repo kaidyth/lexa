@@ -1,7 +1,11 @@
 package routes
 
 import (
+	"encoding/json"
 	"net/http"
+
+	"github.com/kaidyth/lexa/common"
+	"github.com/knadh/koanf"
 )
 
 type RootRouteElement struct {
@@ -21,7 +25,25 @@ func NewRootRoute() *RootRouteElement {
 
 // ServeHTTP runs the given action
 func (r *RootRouteElement) ServeHTTP(response http.ResponseWriter, request *http.Request) {
-	response.Header().Set("test", "test")
+	ctx := request.Context()
+	k := ctx.Value("koanf").(*koanf.Koanf)
+
+	// Set a JSON response
+	response.Header().Set("Content-Type", "application/json")
+
+	ds, err := common.NewDataset(k)
+	if err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	jsonDs, err := json.Marshal(ds)
+	if err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	response.Write(jsonDs)
 }
 
 // GetRoute returns Route
