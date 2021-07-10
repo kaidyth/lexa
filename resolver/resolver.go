@@ -146,7 +146,10 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 		case dns.TypeA:
 			var addresses []common.InterfaceElement
 			if interfaceName == "" && serviceName == "" {
-				addresses = append([]common.InterfaceElement{host.Interfaces.IPv4[0]}, addresses...)
+				// @todo: check if [0] exists
+				if len(host.Interfaces.IPv6) != 0 {
+				        addresses = append([]common.InterfaceElement{host.Interfaces.IPv4[0]}, addresses...)
+				}
 			} else if interfaceName != "" {
 				for _, addr := range host.Interfaces.IPv4 {
 					if addr.Name == interfaceName {
@@ -166,7 +169,9 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 		case dns.TypeAAAA:
 			var addresses []common.InterfaceElement
 			if interfaceName == "" && serviceName == "" {
-				addresses = append([]common.InterfaceElement{host.Interfaces.IPv6[0]}, addresses...)
+				if len(host.Interfaces.IPv6) != 0 {
+				        addresses = append([]common.InterfaceElement{host.Interfaces.IPv6[0]}, addresses...)
+				}
 			} else if interfaceName != "" {
 				for _, addr := range host.Interfaces.IPv6 {
 					if addr.Name == interfaceName {
