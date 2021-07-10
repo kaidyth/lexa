@@ -146,8 +146,7 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 		case dns.TypeA:
 			var addresses []common.InterfaceElement
 			if interfaceName == "" && serviceName == "" {
-				// @todo: check if [0] exists
-				if len(host.Interfaces.IPv6) != 0 {
+				if len(host.Interfaces.IPv4) != 0 {
 				        addresses = append([]common.InterfaceElement{host.Interfaces.IPv4[0]}, addresses...)
 				}
 			} else if interfaceName != "" {
