@@ -105,11 +105,8 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 	// Iterate over the question
 	for _, q := range m.Question {
 
-		// Grab the data source
-		ds, err := common.NewDataset(k)
-		if err != nil {
-			return
-		}
+		// Grab the data source. This returns an error but []Hosts{} so we can ignroe the erro
+		ds, _ := common.NewDataset(k)
 
 		// Filter the specific host data out
 		var host common.Host
