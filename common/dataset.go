@@ -56,8 +56,10 @@ func (i Interfaces) MarshalJSON() ([]byte, error) {
 func NewDataset(k *koanf.Koanf) (*Dataset, error) {
 	hosts, err := initHosts(k)
 	if err != nil {
+		hosts := []Host{}
 		log.Fatal("Unable to fetch hosts from upstream")
-		return nil, errors.New("Unable to fetch hosts")
+		return &Dataset{
+			Hosts: hosts}, errors.New("Unable to fetch hosts")
 	}
 
 	return &Dataset{
