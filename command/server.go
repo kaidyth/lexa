@@ -97,10 +97,9 @@ func signalHandler(signal os.Signal, wg *sync.WaitGroup) {
 
 	switch signal {
 	case syscall.SIGTERM:
+		wg.Add(-WAITGROUP_INSTANCES)
 	case syscall.SIGINT:
 		wg.Add(-WAITGROUP_INSTANCES)
-	case syscall.SIGHUP:
-
 	default:
 		fmt.Println("- unknown signal")
 	}
