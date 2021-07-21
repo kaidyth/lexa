@@ -18,6 +18,7 @@ import (
 func NewResolver(ctx context.Context) *dns.Server {
 	k := ctx.Value("koanf").(*koanf.Koanf)
 	port := k.String("dns.port")
+	bind := k.String("dns.bind")
 	suffix := k.String("suffix")
 
 	dns.HandleFunc(suffix+".", func(w dns.ResponseWriter, r *dns.Msg) {
@@ -25,7 +26,7 @@ func NewResolver(ctx context.Context) *dns.Server {
 	})
 
 	server := &dns.Server{
-		Addr: ":" + port,
+		Addr: bind + ":" + port,
 		Net:  "udp",
 	}
 
@@ -36,6 +37,7 @@ func NewDoTResolver(ctx context.Context) *dns.Server {
 	k := ctx.Value("koanf").(*koanf.Koanf)
 	suffix := k.String("suffix")
 	port := k.String("dns.tls.port")
+	bind := k.String("dns.tls.bind")
 	tlsKey := k.String("dns.tls.key")
 	tlsCrt := k.String("dns.tls.certificate")
 
@@ -82,7 +84,7 @@ func NewDoTResolver(ctx context.Context) *dns.Server {
 	}
 
 	server := &dns.Server{
-		Addr:      ":" + port,
+		Addr:      bind + ":" + port,
 		Net:       "tcp-tls",
 		TLSConfig: cfg,
 	}

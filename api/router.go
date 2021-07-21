@@ -72,6 +72,7 @@ func NewRouter(ctx context.Context) *http.Server {
 	router := configureRouter(ctx)
 	k := ctx.Value("koanf").(*koanf.Koanf)
 	port := k.String("tls.port")
+	bind := k.String("tls.bind")
 
 	// Force a modern TLS configuration
 	cfg := &tls.Config{
@@ -87,7 +88,7 @@ func NewRouter(ctx context.Context) *http.Server {
 	}
 
 	server := &http.Server{
-		Addr:         ":" + port,
+		Addr:        bind + ":" + port,
 		TLSConfig:    cfg,
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 		Handler:      router,
