@@ -88,7 +88,7 @@ func NewRouter(ctx context.Context) *http.Server {
 	}
 
 	server := &http.Server{
-		Addr:        bind + ":" + port,
+		Addr:         bind + ":" + port,
 		TLSConfig:    cfg,
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 		Handler:      router,
@@ -156,5 +156,10 @@ func StartServer(k *koanf.Koanf, server *http.Server) error {
 		return server.ServeTLS(listener, tlsCrt, tlsKey)
 	}
 
-	return server.ListenAndServeTLS(tlsCrt, tlsKey)
+	err := server.ListenAndServeTLS(tlsCrt, tlsKey)
+
+	if err != nil {
+		log.Error(err.Error())
+	}
+	return err
 }

@@ -31,9 +31,9 @@ var serverCmd = &cobra.Command{
 		// Create a new waitgroup to allow for paralleization of DNS and API response
 		var wg sync.WaitGroup
 
-		var httpServer = api.NewRouter(ctx)
 		var dnsServer = resolver.NewResolver(ctx)
 		var dotServer = resolver.NewDoTResolver(ctx)
+		var httpServer = api.NewRouter(ctx)
 		wg.Add(WAITGROUP_INSTANCES)
 
 		startServers(k, &wg, ctx, provider, httpServer, dnsServer, dotServer)
