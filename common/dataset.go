@@ -56,7 +56,6 @@ func (i Interfaces) MarshalJSON() ([]byte, error) {
 func NewDataset(k *koanf.Koanf) (*Dataset, error) {
 	hosts, err := initHosts(k)
 	if err != nil {
-		hosts := []Host{}
 		log.Fatal("Unable to fetch hosts from upstream")
 		return &Dataset{
 			Hosts: hosts}, errors.New("Unable to fetch hosts")
@@ -81,18 +80,17 @@ func getConnection(k *koanf.Koanf) (lxd.InstanceServer, error) {
 }
 
 func initHosts(k *koanf.Koanf) ([]Host, error) {
+	hosts := []Host{}
 	conn, err := getConnection(k)
 	if err != nil {
-		return nil, err
+		return hosts, err
 	}
 
 	// Get the Full Container Details
 	containers, err := conn.GetContainersFull()
 	if err != nil {
-		return nil, err
+		return hosts, err
 	}
-
-	hosts := []Host{}
 
 	// Iterate over all of the containers to get their network information
 	for _, container := range containers {
