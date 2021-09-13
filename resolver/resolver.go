@@ -118,16 +118,17 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 			// Search first for the exact hostname
 			if hostElement.Name+"." == q.Name {
 				host = hostElement
-			} else if strings.Contains(q.Name, ".interfaces.") {
+			} else if strings.Contains(q.Name, ".interfaces.") || strings.Contains(q.Name, ".if.") {
 				// If the `.interfaces.` appears, then the user is searching for information for a specific interface
 				asr := strings.Split(q.Name, ".")
 				interfaceName = asr[0]
 
 				fqdnWithoutInterfaces := strings.Replace(q.Name, interfaceName+".interfaces.", "", 1)
+				fqdnWithoutInterfaces = strings.Replace(fqdnWithoutInterfaces, interfaceName+".if.", "", 1)
 				if hostElement.Name+"." == fqdnWithoutInterfaces {
 					host = hostElement
 				}
-			} else if strings.Contains(q.Name, ".intserviceserfaces.") {
+			} else if strings.Contains(q.Name, ".services.") {
 				// If the `.interfaces.` appears, then the user is searching for information for a specific interface
 				asr := strings.Split(q.Name, ".")
 				serviceName = asr[0]
@@ -146,7 +147,7 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 			var addresses []common.InterfaceElement
 			if interfaceName == "" && serviceName == "" {
 				if len(host.Interfaces.IPv4) != 0 {
-				        addresses = append([]common.InterfaceElement{host.Interfaces.IPv4[0]}, addresses...)
+					addresses = append([]common.InterfaceElement{host.Interfaces.IPv4[0]}, addresses...)
 				}
 			} else if interfaceName != "" {
 				for _, addr := range host.Interfaces.IPv4 {
@@ -168,7 +169,7 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 			var addresses []common.InterfaceElement
 			if interfaceName == "" && serviceName == "" {
 				if len(host.Interfaces.IPv6) != 0 {
-				        addresses = append([]common.InterfaceElement{host.Interfaces.IPv6[0]}, addresses...)
+					addresses = append([]common.InterfaceElement{host.Interfaces.IPv6[0]}, addresses...)
 				}
 			} else if interfaceName != "" {
 				for _, addr := range host.Interfaces.IPv6 {
