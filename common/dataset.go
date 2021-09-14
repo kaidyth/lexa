@@ -3,7 +3,8 @@ package common
 import (
 	"encoding/json"
 	"errors"
-	"log"
+
+	"github.com/apex/log"
 
 	"github.com/knadh/koanf"
 	lxd "github.com/lxc/lxd/client"
@@ -56,7 +57,7 @@ func (i Interfaces) MarshalJSON() ([]byte, error) {
 func NewDataset(k *koanf.Koanf) (*Dataset, error) {
 	hosts, err := initHosts(k)
 	if err != nil {
-		log.Fatal("Unable to fetch hosts from upstream")
+		log.Error("Unable to fetch hosts from upstream")
 		return &Dataset{
 			Hosts: hosts}, errors.New("Unable to fetch hosts")
 	}
