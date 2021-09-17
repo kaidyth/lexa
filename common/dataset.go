@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/apex/log"
 
@@ -59,7 +60,7 @@ func NewDataset(k *koanf.Koanf) (*Dataset, error) {
 	if err != nil {
 		log.Error("Unable to fetch hosts from upstream")
 		return &Dataset{
-			Hosts: hosts}, errors.New("Unable to fetch hosts")
+			Hosts: hosts}, errors.New("unable to fetch hosts")
 	}
 
 	return &Dataset{
@@ -138,4 +139,78 @@ func initHosts(k *koanf.Koanf) ([]Host, error) {
 	}
 
 	return hosts, nil
+}
+
+func IsInterfaceQuery(hostname string) bool {
+	if strings.Contains(hostname, ".interface.") || strings.Contains(hostname, ".if.") {
+		return true
+	}
+
+	return false
+}
+
+func GetInterfaceNameFromQuery(hostname string) (string, error) {
+	if !IsInterfaceQuery(hostname) {
+		return "", errors.New("hostname isn't an interfaces query")
+	}
+
+	if strings.Contains(hostname, ".interface.") {
+		return before(hostname, ".interface."), nil
+	}
+
+	if strings.Contains(hostname, ".if.") {
+		return before(hostname, ".if"), nil
+	}
+
+	return "", errors.New("hostname isn't an interfaces query")
+}
+
+func GetServiceNameFromQuery(hostname string) (string, error) {
+	if !IsServicesQuery(hostname) {
+		return "", errors.New("hostname isn't a services query")
+	}
+
+	return before(hostname, ".service."), nil
+}
+
+func IsServicesQuery(hostname string) bool {
+	return strings.Contains(hostname, ".service.")
+}
+
+func GetBaseHostname(hostname string) string {
+	if strings.Contains(hostname, ".interface.") {
+		return after(hostname, ".interface.")
+	}
+
+	if strings.Contains(hostname, ".if.") {
+		return after(hostname, ".if.")
+	}
+
+	if strings.Contains(hostname, ".service.") {
+		return after(hostname, ".service.")
+	}
+
+	return hostname
+}
+
+func after(value string, a string) string {
+	// Get substring after a string.
+	pos := strings.LastIndex(value, a)
+	if pos == -1 {
+		return ""
+	}
+	adjustedPos := pos + len(a)
+	if adjustedPos >= len(value) {
+		return ""
+	}
+	return value[adjustedPos:len(value)]
+}
+
+func before(value string, a string) string {
+	// Get substring before a string.
+	pos := strings.Index(value, a)
+	if pos == -1 {
+		return ""
+	}
+	return value[0:pos]
 }

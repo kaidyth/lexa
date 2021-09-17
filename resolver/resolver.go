@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/apex/log"
 	"github.com/kaidyth/lexa/common"
 	"github.com/knadh/koanf"
 	"github.com/miekg/dns"
+	"github.com/ryanuber/go-glob"
 )
 
 // NewResolver creates a new DNS resolver
@@ -106,89 +106,77 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 
 	// Iterate over the question
 	for _, q := range m.Question {
+		hostname := common.GetBaseHostname(q.Name)
+		log.Trace(fmt.Sprintf("Query for %s %d, Hostname: %s\n", q.Name, q.Qtype, hostname))
 
 		// Grab the data source. This returns an error but []Hosts{} so we can ignroe the erro
 		ds, _ := common.NewDataset(k)
 
 		// Filter the specific host data out
-		var host common.Host
-		interfaceName := ""
-		serviceName := ""
+		var hosts []common.Host
+
+		// Iterate over all hosts in the dataset, and glob match for wildcards, and construct an array of matching hosts
 		for _, hostElement := range ds.Hosts {
-			// Search first for the exact hostname
-			if hostElement.Name+"." == q.Name {
-				host = hostElement
-			} else if strings.Contains(q.Name, ".interfaces.") || strings.Contains(q.Name, ".if.") {
-				// If the `.interfaces.` appears, then the user is searching for information for a specific interface
-				asr := strings.Split(q.Name, ".")
-				interfaceName = asr[0]
-
-				fqdnWithoutInterfaces := strings.Replace(q.Name, interfaceName+".interfaces.", "", 1)
-				fqdnWithoutInterfaces = strings.Replace(fqdnWithoutInterfaces, interfaceName+".if.", "", 1)
-				if hostElement.Name+"." == fqdnWithoutInterfaces {
-					host = hostElement
-				}
-			} else if strings.Contains(q.Name, ".services.") {
-				// If the `.interfaces.` appears, then the user is searching for information for a specific interface
-				asr := strings.Split(q.Name, ".")
-				serviceName = asr[0]
-
-				fqdnWithoutInterfaces := strings.Replace(q.Name, serviceName+".services.", "", 1)
-				if hostElement.Name+"." == fqdnWithoutInterfaces {
-					host = hostElement
-				}
+			// Strip the .if., .interfaces., and .services. section from the query name
+			if hostElement.Name+"." == hostname || glob.Glob(hostname, hostElement.Name+".") {
+				hosts = append([]common.Host{hostElement}, hosts...)
 			}
 		}
 
-		log.Trace(fmt.Sprintf("Query for %s %d\n", q.Name, q.Qtype))
+		for _, host := range hosts {
+			switch q.Qtype {
+			case dns.TypeA:
+				addresses, rt := getAddressesForQueryType(host, q.Name, "IPv4")
 
-		switch q.Qtype {
-		case dns.TypeA:
-			var addresses []common.InterfaceElement
-			if interfaceName == "" && serviceName == "" {
-				if len(host.Interfaces.IPv4) != 0 {
-					addresses = append([]common.InterfaceElement{host.Interfaces.IPv4[0]}, addresses...)
-				}
-			} else if interfaceName != "" {
-				for _, addr := range host.Interfaces.IPv4 {
-					if addr.Name == interfaceName {
-						addresses = append([]common.InterfaceElement{addr}, addresses...)
+				for _, address := range addresses {
+					rr, err := dns.NewRR(fmt.Sprintf("%s 0 %s %s", host.Name, rt, address.IP.String()))
+					if err == nil {
+						m.Answer = append(m.Answer, rr)
 					}
 				}
-			} else if serviceName != "" {
+			case dns.TypeAAAA:
+				addresses, rt := getAddressesForQueryType(host, q.Name, "IPv6")
 
-			}
-
-			for _, address := range addresses {
-				rr, err := dns.NewRR(fmt.Sprintf("%s 0 A %s", q.Name, address.IP.String()))
-				if err == nil {
-					m.Answer = append(m.Answer, rr)
-				}
-			}
-		case dns.TypeAAAA:
-			var addresses []common.InterfaceElement
-			if interfaceName == "" && serviceName == "" {
-				if len(host.Interfaces.IPv6) != 0 {
-					addresses = append([]common.InterfaceElement{host.Interfaces.IPv6[0]}, addresses...)
-				}
-			} else if interfaceName != "" {
-				for _, addr := range host.Interfaces.IPv6 {
-					if addr.Name == interfaceName {
-						addresses = append([]common.InterfaceElement{addr}, addresses...)
+				for _, address := range addresses {
+					rr, err := dns.NewRR(fmt.Sprintf("%s 0 %s %s", host.Name, rt, address.IP.String()))
+					if err == nil {
+						m.Answer = append(m.Answer, rr)
 					}
-				}
-			} else if serviceName != "" {
-
-			}
-
-			for _, address := range addresses {
-				rr, err := dns.NewRR(fmt.Sprintf("%s 0 AAAA %s", q.Name, address.IP.String()))
-				if err == nil {
-					m.Answer = append(m.Answer, rr)
 				}
 			}
 		}
 	}
+}
+
+func getAddressesForQueryType(host common.Host, queryString string, t string) ([]common.InterfaceElement, string) {
+	var addresses []common.InterfaceElement
+
+	var r []common.InterfaceElement
+	var rt string
+	if t == "IPv4" {
+		r = host.Interfaces.IPv4
+		rt = "A"
+	} else if t == "IPv6" {
+		r = host.Interfaces.IPv6
+		rt = "AAAA"
+	}
+
+	if !common.IsInterfaceQuery(queryString) && !common.IsServicesQuery(queryString) {
+		if len(r) != 0 {
+			addresses = append([]common.InterfaceElement{r[0]}, addresses...)
+		}
+	} else if common.IsInterfaceQuery(queryString) {
+		interfaceName, err := common.GetInterfaceNameFromQuery(queryString)
+		if err == nil {
+			for _, addr := range r {
+				if addr.Name == interfaceName {
+					addresses = append([]common.InterfaceElement{addr}, addresses...)
+				}
+			}
+		}
+	}
+
+	return addresses, rt
 }
 
 func handleRequest(w dns.ResponseWriter, r *dns.Msg, ctx context.Context) {

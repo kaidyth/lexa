@@ -8,6 +8,6 @@ func NewRootMount() Mount {
 	r = append(r, routes.NewRootRoute())
 
 	return Mount{
-		MountPoint: "/",
+		MountPoint: "/containers",
 		Routes:     r}
 }
