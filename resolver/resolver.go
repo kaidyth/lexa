@@ -129,7 +129,7 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 				addresses, rt := getAddressesForQueryType(host, q.Name, "IPv4")
 
 				for _, address := range addresses {
-					rr, err := dns.NewRR(fmt.Sprintf("%s 0 %s %s", host.Name, rt, address.IP.String()))
+					rr, err := dns.NewRR(fmt.Sprintf("%s 0 %s %s", q.Name, rt, address.IP.String()))
 					if err == nil {
 						m.Answer = append(m.Answer, rr)
 					}
@@ -138,7 +138,7 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 				addresses, rt := getAddressesForQueryType(host, q.Name, "IPv6")
 
 				for _, address := range addresses {
-					rr, err := dns.NewRR(fmt.Sprintf("%s 0 %s %s", host.Name, rt, address.IP.String()))
+					rr, err := dns.NewRR(fmt.Sprintf("%s 0 %s %s", q.Name, rt, address.IP.String()))
 					if err == nil {
 						m.Answer = append(m.Answer, rr)
 					}
