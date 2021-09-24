@@ -18,11 +18,13 @@ require (
 	github.com/libp2p/go-libp2p-core v0.8.6
 	github.com/libp2p/go-libp2p-kad-dht v0.13.1
 	github.com/libp2p/go-libp2p-noise v0.2.0
+	github.com/libp2p/go-libp2p-peerstore v0.2.8
 	github.com/libp2p/go-libp2p-quic-transport v0.11.2
 	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/lxc/lxd v0.0.0-20210626035152-24a1b4c5eecc
 	github.com/marten-seemann/qtls v0.10.0 // indirect
 	github.com/miekg/dns v1.1.43
+	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
