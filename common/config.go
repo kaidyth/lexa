@@ -30,6 +30,7 @@ func SetupConfig(k *koanf.Koanf, provider koanf.Provider) {
 		"ipfs.seed":               nil,
 		"ipfs.bind":               "0.0.0.0",
 		"ipfs.port":               9000,
+		"agent.peers":             []string{},
 	}, "."), nil)
 
 	if err := k.Load(provider, hcl.Parser(true)); err != nil {

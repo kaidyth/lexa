@@ -13,10 +13,13 @@ require (
 	github.com/kavu/go_reuseport v1.5.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/knadh/koanf v1.1.1
-	github.com/libp2p/go-libp2p v0.15.0
-	github.com/libp2p/go-libp2p-connmgr v0.2.4 // indirect
-	github.com/libp2p/go-libp2p-kad-dht v0.12.2 // indirect
-	github.com/libp2p/go-libp2p-secio v0.2.2 // indirect
+	github.com/libp2p/go-libp2p v0.14.4
+	github.com/libp2p/go-libp2p-connmgr v0.2.4
+	github.com/libp2p/go-libp2p-core v0.8.6
+	github.com/libp2p/go-libp2p-kad-dht v0.13.1
+	github.com/libp2p/go-libp2p-noise v0.2.0
+	github.com/libp2p/go-libp2p-quic-transport v0.11.2
+	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/lxc/lxd v0.0.0-20210626035152-24a1b4c5eecc
 	github.com/marten-seemann/qtls v0.10.0 // indirect
 	github.com/miekg/dns v1.1.43

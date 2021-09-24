@@ -78,7 +78,7 @@ func reloadServers(k *koanf.Koanf, ctx context.Context, wg *sync.WaitGroup, http
 	wg.Done()
 	wg.Done()
 
-	if err := ipfs.Shutdown(ctx, ipfsServer); err == nil {
+	if err := ipfs.Shutdown(ctx, ipfsServer); err != nil {
 		log.Trace(fmt.Sprintf("IPFS server shutdown error: %v", err))
 	}
 
@@ -117,7 +117,7 @@ func signalHandler(signal os.Signal, wg *sync.WaitGroup) {
 		"signal": fmt.Sprintf("%s", signal),
 	}).Trace("Handling signal")
 
-	log.Trace(fmt.Sprintf("Active Waitgroup Instances%d", wg_count))
+	log.Trace(fmt.Sprintf("Active Waitgroup Instances: %d", wg_count))
 	switch signal {
 	case syscall.SIGTERM:
 		wg.Add(-WAITGROUP_INSTANCES)

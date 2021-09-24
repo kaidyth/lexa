@@ -122,27 +122,66 @@ Both Lexa server and Lexa agent are configured via a HCL file. Defaults are defi
 ### Lexa Server Sample Configuration
 
 ```hcl
+# LXD connection configuration
 lxd {
+    # The LXD Socket connectiont o use
+    # Priority is given to sockets over host port if both are defined.
     socket = "/var/snap/lxd/common/lxd/unix.socket"
 }
 
+# Rest HTTP API configuration
 tls {
+    # The TLS port to use
     port = 18443
+
+    # Whether or not use to use kernel so_resueport. Linux only
     so_resue_port = true
+
+    # TLS Certificate and Key
+    # If not provided, Lexa will generate a temporary one
     certificate = "/path/to/server.crt"
     key = "/path/to/server.key"
+
+    # Whether or not to enable Mutual TLS and require a client certificate to
     mtls {
         ca_certificate = false
     }
 }
 
+# DNS Server configuration
 dns {
+    # The DNS port to bind to
     port = 18053
+
+    # DNS DoT sub-configuration
     tls {
+        # The DoT port to bind to
         port = 18853
+
+        # TLS Certificate and Key
+        # If not provided, Lexa will generate a temporary one
         certificate = "/path/to/server.crt"
         key = "/path/to/server.key"
     }
+}
+
+# IPFS Server information
+ipfs {
+    # IPFS address to bind to
+    bind = "0.0.0.0"
+
+    # IPFS port to bind to
+    port = 9000
+}
+
+# Agent configuration
+# This information is exlusively used for `lexa agent`
+agent {
+    # An array of IPFS peers the agent should bootstrap to
+    # At minimum, this should be your Lexa host or Lexa relay
+    peers = [
+        "127.0.0.1"
+    ]
 }
 ```
 
