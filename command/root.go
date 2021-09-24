@@ -5,7 +5,6 @@ import (
 
 	"github.com/kaidyth/lexa/common"
 	"github.com/knadh/koanf"
-	"github.com/knadh/koanf/parsers/hcl"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/spf13/cobra"
 )
@@ -45,11 +44,4 @@ func persistentPreRun(cmd *cobra.Command, args []string) {
 
 	// Reload the logger configuration
 	common.NewLogger(k)
-
-	provider.Watch(func(event interface{}, err error) {
-		// If the configuration file is changed, re-read the configuration file
-		k.Load(provider, hcl.Parser(true))
-		// and reload the logger configuration
-		common.NewLogger(k)
-	})
 }

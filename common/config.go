@@ -1,6 +1,8 @@
 package common
 
 import (
+	"fmt"
+
 	"github.com/apex/log"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/hcl"
@@ -31,6 +33,6 @@ func SetupConfig(k *koanf.Koanf, provider koanf.Provider) {
 	}, "."), nil)
 
 	if err := k.Load(provider, hcl.Parser(true)); err != nil {
-		log.Error("Unable to read HCL configuration file")
+		log.Error(fmt.Sprintf("Unable to read HCL configuration file: %v", err))
 	}
 }

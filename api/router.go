@@ -158,8 +158,5 @@ func StartServer(k *koanf.Koanf, server *http.Server) error {
 
 	err := server.ListenAndServeTLS(tlsCrt, tlsKey)
 
-	if err != nil {
-		log.Error(err.Error())
-	}
 	return err
 }

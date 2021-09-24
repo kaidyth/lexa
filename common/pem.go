@@ -45,7 +45,7 @@ func GenerateCertificate(pub, priv interface{}, cFile *os.File) {
 			OrganizationalUnit: []string{"Lexa"},
 		},
 		NotBefore: time.Now(),
-		NotAfter:  time.Now().Add(time.Hour * 24 * 30),
+		NotAfter:  time.Now().Add(time.Hour * 24 * 1),
 	}
 
 	certDer, err := x509.CreateCertificate(
