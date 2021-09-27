@@ -14,7 +14,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	peerstore "github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	noise "github.com/libp2p/go-libp2p-noise"
@@ -29,16 +28,17 @@ func NewIpfsHost(ctx context.Context) *host.Host {
 	bind := k.String("ipfs.bind")
 	keyString := k.String("ipfs.privateKey")
 
+	var priv crypto.PrivKey
 	keyBytes, err := base64.StdEncoding.DecodeString(keyString)
-	if err != nil {
-		log.Fatal(fmt.Sprintf("Private key is formatted incorrectly"))
+	if err != nil || len(keyBytes) != 68 {
+		priv, _, _ = crypto.GenerateKeyPair(
+			crypto.Ed25519,
+			-1,
+		)
+	} else {
+		priv, _ = crypto.UnmarshalPrivateKey(keyBytes)
 	}
 
-	if len(keyBytes) != 64 {
-		log.Fatal(fmt.Sprintf("Private key is incorrect length"))
-	}
-
-	priv, _ := crypto.UnmarshalEd25519PrivateKey(keyBytes)
 	host, err := libp2p.New(ctx,
 		libp2p.Identity(priv),
 		// Multiple listen addresses
@@ -67,21 +67,35 @@ func NewIpfsHost(ctx context.Context) *host.Host {
 	)
 
 	log.Info(fmt.Sprintf("IPFS Server Created and started: %v", err))
-	fullAddr := getHostAddress(host)
-	log.Debug(fmt.Sprintf("I am %s\n", fullAddr))
+	fullAddr := GetHostAddresses(host)
+	log.Trace(fmt.Sprintf("I am %v\n", fullAddr))
+
 	return &host
 }
 
 func NewIpfsAgent(ctx context.Context) *host.Host {
 	k := ctx.Value("koanf").(*koanf.Koanf)
 
+	// Generates a random Keypair for this node
 	priv, _, _ := crypto.GenerateKeyPair(
-		crypto.Ed25519, // Select your key type. Ed25519 are nice short
-		-1,             // Select key length when possible (i.e. RSA).
+		crypto.Ed25519,
+		-1,
 	)
+
+	var addrsd []ma.Multiaddr
+	var peers []*peer.AddrInfo
+	for _, addr := range k.Strings("agent.peer") {
+		ipfsAddress, _ := ma.NewMultiaddr(addr)
+		pi, _ := peer.AddrInfoFromP2pAddr(ipfsAddress)
+		peers = append(peers, pi)
+		addrsd = append(addrsd, ipfsAddress)
+	}
 
 	host, err := libp2p.New(ctx,
 		libp2p.Identity(priv),
+		libp2p.AddrsFactory(func(addrs []ma.Multiaddr) []ma.Multiaddr {
+			return addrsd
+		}),
 		libp2p.Security(libp2ptls.ID, libp2ptls.New),
 		libp2p.Security(noise.ID, noise.New),
 		libp2p.Transport(libp2pquic.NewTransport),
@@ -103,31 +117,39 @@ func NewIpfsAgent(ctx context.Context) *host.Host {
 	log.Info(fmt.Sprintf("IPFS Server Created and started: %v", err))
 	log.Trace(fmt.Sprintf("Host %s", host.ID()))
 
-	for id, addresses := range k.StringsMap("agent.peer") {
-		peer, err := peer.Decode(id)
-		log.Debug(fmt.Sprintf("%v", err))
-		for _, addr := range addresses {
-			ipfsAddress, err := ma.NewMultiaddr(addr)
-			log.Debug(fmt.Sprintf("%v", err))
-			host.Peerstore().AddAddr(peer, ipfsAddress, peerstore.PermanentAddrTTL)
-		}
-
+	for _, pi := range peers {
+		err := host.Connect(ctx, *pi)
+		log.Debug(fmt.Sprintf("Connect: %v", err))
 	}
 
+	GetPeers(host)
 	return &host
 }
 
 func Shutdown(ctx context.Context, host *host.Host) error {
-	log.Info(fmt.Sprintf("IPFS Server Shutdown"))
+	log.Info("IPFS Server Shutdown")
 	return (*host).Close()
 }
 
-func getHostAddress(ha host.Host) string {
+func GetPeers(ha host.Host) ([]*peer.AddrInfo, error) {
+	var peers []*peer.AddrInfo
+	for _, peer := range ha.Peerstore().PeersWithAddrs() {
+		log.Debug(fmt.Sprintf("%v", peer.String()))
+	}
+
+	return peers, nil
+}
+
+func GetHostAddresses(ha host.Host) []string {
 	// Build host multiaddress
 	hostAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", ha.ID().Pretty()))
 
 	// Now we can build a full multiaddress to reach this host
 	// by encapsulating both addresses:
-	addr := ha.Addrs()[0]
-	return addr.Encapsulate(hostAddr).String()
+	var addrs []string
+	for _, addr := range ha.Addrs() {
+		addrs = append(addrs, addr.Encapsulate(hostAddr).String())
+	}
+
+	return addrs
 }
