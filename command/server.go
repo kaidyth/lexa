@@ -12,12 +12,10 @@ import (
 	"github.com/apex/log"
 	"github.com/kaidyth/lexa/api"
 	"github.com/kaidyth/lexa/common"
-	"github.com/kaidyth/lexa/ipfs"
 	"github.com/kaidyth/lexa/resolver"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/hcl"
 	"github.com/knadh/koanf/providers/file"
-	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/miekg/dns"
 	"github.com/spf13/cobra"
 )
@@ -38,11 +36,10 @@ var serverCmd = &cobra.Command{
 		var dnsServer = resolver.NewResolver(ctx)
 		var dotServer = resolver.NewDoTResolver(ctx)
 		var httpServer = api.NewRouter(ctx)
-		var ipfsServer = ipfs.NewIpfsHost(ctx)
 		wg.Add(WAITGROUP_INSTANCES)
 		wg_count = WAITGROUP_INSTANCES
 
-		startServers(k, &wg, ctx, provider, httpServer, dnsServer, dotServer, ipfsServer, false)
+		startServers(k, &wg, ctx, provider, httpServer, dnsServer, dotServer, false)
 
 		// Create a signal handler for TERM, INT, and USR1
 		var captureSignal = make(chan os.Signal, 1)
@@ -56,7 +53,7 @@ var serverCmd = &cobra.Command{
 	},
 }
 
-func reloadServers(k *koanf.Koanf, ctx context.Context, wg *sync.WaitGroup, httpServer *http.Server, dnsServer *dns.Server, dotServer *dns.Server, ipfsServer *host.Host, provider *file.File) {
+func reloadServers(k *koanf.Koanf, ctx context.Context, wg *sync.WaitGroup, httpServer *http.Server, dnsServer *dns.Server, dotServer *dns.Server, provider *file.File) {
 	log.Info("Reloading server with updated configuration")
 	wg.Add(WAITGROUP_INSTANCES)
 	wg_count += WAITGROUP_INSTANCES
@@ -78,18 +75,13 @@ func reloadServers(k *koanf.Koanf, ctx context.Context, wg *sync.WaitGroup, http
 	wg.Done()
 	wg.Done()
 
-	if err := ipfs.Shutdown(ctx, ipfsServer); err != nil {
-		log.Trace(fmt.Sprintf("IPFS server shutdown error: %v", err))
-	}
-
 	*httpServer = *api.NewRouter(ctx)
 	*dnsServer = *resolver.NewResolver(ctx)
 	*dotServer = *resolver.NewDoTResolver(ctx)
-	ipfsServer = ipfs.NewIpfsHost(ctx)
-	startServers(k, wg, ctx, provider, httpServer, dnsServer, dotServer, ipfsServer, true)
+	startServers(k, wg, ctx, provider, httpServer, dnsServer, dotServer, true)
 }
 
-func startServers(k *koanf.Koanf, wg *sync.WaitGroup, ctx context.Context, provider *file.File, httpServer *http.Server, dnsServer *dns.Server, dotServer *dns.Server, ipfsServer *host.Host, isWatching bool) {
+func startServers(k *koanf.Koanf, wg *sync.WaitGroup, ctx context.Context, provider *file.File, httpServer *http.Server, dnsServer *dns.Server, dotServer *dns.Server, isWatching bool) {
 
 	// If the configuration file changes, shutdown the existing server
 	// instances, then restart them with the new configuration within
@@ -102,14 +94,13 @@ func startServers(k *koanf.Koanf, wg *sync.WaitGroup, ctx context.Context, provi
 			log.Debug("Watch event fired")
 			ctx = context.WithValue(ctx, "koanf", k)
 			ctx = context.WithValue(ctx, "provider", provider)
-			reloadServers(k, ctx, wg, httpServer, dnsServer, dotServer, ipfsServer, provider)
+			reloadServers(k, ctx, wg, httpServer, dnsServer, dotServer, provider)
 		})
 	}
 
 	go api.StartServer(k, httpServer)
 	go resolver.StartServer(dnsServer)
 	go resolver.StartServer(dotServer)
-	// ipfs server is already started, it's managed by a separte goroutine
 }
 
 func signalHandler(signal os.Signal, wg *sync.WaitGroup) {
