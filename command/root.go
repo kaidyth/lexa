@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 
-	"github.com/kaidyth/lexa/common"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/spf13/cobra"
@@ -16,7 +15,6 @@ var (
 		Short:            "Service and instance discovery for LXD",
 		Long:             `Lexa providers service and instance discovery for LXD containers over an JSON REST API and over DNS.`,
 		TraverseChildren: true,
-		PersistentPreRun: persistentPreRun,
 	}
 	k        = koanf.New(".")
 	provider = file.Provider("lexa.hcl")
@@ -32,16 +30,4 @@ func Execute() error {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "lexa.hcl", "configuration file path")
-}
-
-func persistentPreRun(cmd *cobra.Command, args []string) {
-	provider = file.Provider(configFile)
-	// Setup the initial logger to stdout with INFO level
-	common.NewLogger(k)
-
-	// Read the configuration file
-	common.SetupConfig(k, provider)
-
-	// Reload the logger configuration
-	common.NewLogger(k)
 }

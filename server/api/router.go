@@ -12,9 +12,9 @@ import (
 
 	"github.com/apex/log"
 	"github.com/gorilla/mux"
-	"github.com/kaidyth/lexa/common"
 	"github.com/kaidyth/lexa/server/api/mounts"
 	"github.com/kaidyth/lexa/server/middleware"
+	"github.com/kaidyth/lexa/shared"
 	reuseport "github.com/kavu/go_reuseport"
 	"github.com/knadh/koanf"
 	"github.com/urfave/negroni"
@@ -71,8 +71,8 @@ func configureRouter(context context.Context) *negroni.Negroni {
 func NewRouter(ctx context.Context) *http.Server {
 	router := configureRouter(ctx)
 	k := ctx.Value("koanf").(*koanf.Koanf)
-	port := k.String("tls.port")
-	bind := k.String("tls.bind")
+	port := k.String("server.tls.port")
+	bind := k.String("server.tls.bind")
 
 	// Force a modern TLS configuration
 	cfg := &tls.Config{
@@ -105,9 +105,9 @@ func Shutdown(ctx context.Context, httpServer *http.Server) error {
 
 // StartServer starts a new HTTP Server
 func StartServer(k *koanf.Koanf, server *http.Server) error {
-	port := k.String("tls.port")
-	tlsKey := k.String("tls.key")
-	tlsCrt := k.String("tls.certificate")
+	port := k.String("server.tls.port")
+	tlsKey := k.String("server.tls.key")
+	tlsCrt := k.String("server.tls.certificate")
 
 	// If a TLS certificate and keyy aren't provided, generate one on demand
 	if tlsKey == "" || tlsCrt == "" {
@@ -124,8 +124,8 @@ func StartServer(k *koanf.Koanf, server *http.Server) error {
 			os.Exit(1)
 		}
 
-		ECKey := common.GenerateECKey(kFile)
-		common.GenerateCertificate(&ECKey.PublicKey, ECKey, cFile)
+		ECKey := shared.GenerateECKey(kFile)
+		shared.GenerateCertificate(&ECKey.PublicKey, ECKey, cFile)
 
 		tlsKey = kFile.Name()
 		tlsCrt = cFile.Name()

@@ -8,8 +8,8 @@ import (
 	"os"
 
 	"github.com/apex/log"
-	common "github.com/kaidyth/lexa/common"
 	"github.com/kaidyth/lexa/server/dataset"
+	"github.com/kaidyth/lexa/shared"
 	"github.com/knadh/koanf"
 	"github.com/miekg/dns"
 	"github.com/ryanuber/go-glob"
@@ -18,9 +18,9 @@ import (
 // NewResolver creates a new DNS resolver
 func NewResolver(ctx context.Context) *dns.Server {
 	k := ctx.Value("koanf").(*koanf.Koanf)
-	port := k.String("dns.port")
-	bind := k.String("dns.bind")
-	suffix := k.String("suffix")
+	port := k.String("server.dns.port")
+	bind := k.String("server.dns.bind")
+	suffix := k.String("server.suffix")
 
 	dns.HandleFunc(suffix+".", func(w dns.ResponseWriter, r *dns.Msg) {
 		handleRequest(w, r, ctx)
@@ -36,11 +36,11 @@ func NewResolver(ctx context.Context) *dns.Server {
 
 func NewDoTResolver(ctx context.Context) *dns.Server {
 	k := ctx.Value("koanf").(*koanf.Koanf)
-	suffix := k.String("suffix")
-	port := k.String("dns.tls.port")
-	bind := k.String("dns.tls.bind")
-	tlsKey := k.String("dns.tls.key")
-	tlsCrt := k.String("dns.tls.certificate")
+	suffix := k.String("server.suffix")
+	port := k.String("server.dns.tls.port")
+	bind := k.String("server.dns.tls.bind")
+	tlsKey := k.String("server.dns.tls.key")
+	tlsCrt := k.String("server.dns.tls.certificate")
 
 	dns.HandleFunc(suffix+".", func(w dns.ResponseWriter, r *dns.Msg) {
 		handleRequest(w, r, ctx)
@@ -61,8 +61,8 @@ func NewDoTResolver(ctx context.Context) *dns.Server {
 			os.Exit(1)
 		}
 
-		ECKey := common.GenerateECKey(kFile)
-		common.GenerateCertificate(&ECKey.PublicKey, ECKey, cFile)
+		ECKey := shared.GenerateECKey(kFile)
+		shared.GenerateCertificate(&ECKey.PublicKey, ECKey, cFile)
 
 		tlsKey = kFile.Name()
 		tlsCrt = cFile.Name()
