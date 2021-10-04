@@ -12,9 +12,9 @@ import (
 
 	"github.com/apex/log"
 	"github.com/gorilla/mux"
-	"github.com/kaidyth/lexa/api/mounts"
 	"github.com/kaidyth/lexa/common"
-	"github.com/kaidyth/lexa/middleware"
+	"github.com/kaidyth/lexa/server/api/mounts"
+	"github.com/kaidyth/lexa/server/middleware"
 	reuseport "github.com/kavu/go_reuseport"
 	"github.com/knadh/koanf"
 	"github.com/urfave/negroni"

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/kaidyth/lexa/common"
+	common "github.com/kaidyth/lexa/server/dataset"
 	"github.com/knadh/koanf"
 )
 

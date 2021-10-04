@@ -8,7 +8,8 @@ import (
 	"os"
 
 	"github.com/apex/log"
-	"github.com/kaidyth/lexa/common"
+	common "github.com/kaidyth/lexa/common"
+	"github.com/kaidyth/lexa/server/dataset"
 	"github.com/knadh/koanf"
 	"github.com/miekg/dns"
 	"github.com/ryanuber/go-glob"
@@ -106,20 +107,20 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 
 	// Iterate over the question
 	for _, q := range m.Question {
-		hostname := common.GetBaseHostname(q.Name)
+		hostname := dataset.GetBaseHostname(q.Name)
 		log.Trace(fmt.Sprintf("Query for %s %d, Hostname: %s\n", q.Name, q.Qtype, hostname))
 
 		// Grab the data source. This returns an error but []Hosts{} so we can ignroe the erro
-		ds, _ := common.NewDataset(k)
+		ds, _ := dataset.NewDataset(k)
 
 		// Filter the specific host data out
-		var hosts []common.Host
+		var hosts []dataset.Host
 
 		// Iterate over all hosts in the dataset, and glob match for wildcards, and construct an array of matching hosts
 		for _, hostElement := range ds.Hosts {
 			// Strip the .if., .interfaces., and .services. section from the query name
 			if hostElement.Name+"." == hostname || glob.Glob(hostname, hostElement.Name+".") {
-				hosts = append([]common.Host{hostElement}, hosts...)
+				hosts = append([]dataset.Host{hostElement}, hosts...)
 			}
 		}
 
@@ -148,10 +149,10 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 	}
 }
 
-func getAddressesForQueryType(host common.Host, queryString string, t string) ([]common.InterfaceElement, string) {
-	var addresses []common.InterfaceElement
+func getAddressesForQueryType(host dataset.Host, queryString string, t string) ([]dataset.InterfaceElement, string) {
+	var addresses []dataset.InterfaceElement
 
-	var r []common.InterfaceElement
+	var r []dataset.InterfaceElement
 	var rt string
 	if t == "IPv4" {
 		r = host.Interfaces.IPv4
@@ -161,16 +162,16 @@ func getAddressesForQueryType(host common.Host, queryString string, t string) ([
 		rt = "AAAA"
 	}
 
-	if !common.IsInterfaceQuery(queryString) && !common.IsServicesQuery(queryString) {
+	if !dataset.IsInterfaceQuery(queryString) && !dataset.IsServicesQuery(queryString) {
 		if len(r) != 0 {
-			addresses = append([]common.InterfaceElement{r[0]}, addresses...)
+			addresses = append([]dataset.InterfaceElement{r[0]}, addresses...)
 		}
-	} else if common.IsInterfaceQuery(queryString) {
-		interfaceName, err := common.GetInterfaceNameFromQuery(queryString)
+	} else if dataset.IsInterfaceQuery(queryString) {
+		interfaceName, err := dataset.GetInterfaceNameFromQuery(queryString)
 		if err == nil {
 			for _, addr := range r {
 				if addr.Name == interfaceName {
-					addresses = append([]common.InterfaceElement{addr}, addresses...)
+					addresses = append([]dataset.InterfaceElement{addr}, addresses...)
 				}
 			}
 		}

@@ -10,9 +10,9 @@ import (
 	"syscall"
 
 	"github.com/apex/log"
-	"github.com/kaidyth/lexa/api"
 	"github.com/kaidyth/lexa/common"
-	"github.com/kaidyth/lexa/resolver"
+	"github.com/kaidyth/lexa/server/api"
+	"github.com/kaidyth/lexa/server/resolver"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/hcl"
 	"github.com/knadh/koanf/providers/file"

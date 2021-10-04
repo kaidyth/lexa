@@ -1,6 +1,6 @@
 package mounts
 
-import "github.com/kaidyth/lexa/api/routes"
+import "github.com/kaidyth/lexa/server/api/routes"
 
 // NewRootMount returns all the routes under /
 func NewRootMount() Mount {

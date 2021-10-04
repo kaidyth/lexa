@@ -1,4 +1,4 @@
-package common
+package dataset
 
 import (
 	"encoding/json"

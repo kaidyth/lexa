@@ -1,6 +1,6 @@
 package mounts
 
-import "github.com/kaidyth/lexa/api/routes"
+import "github.com/kaidyth/lexa/server/api/routes"
 
 // Mount definition
 type Mount struct {
