@@ -46,7 +46,7 @@ var agentCmd = &cobra.Command{
 		// Wait for the goroutines to clearnly exist before ending the server
 		wg.Wait()
 
-		// Cleanup?ß
+		// Cleanup?
 	},
 }
 
@@ -55,7 +55,7 @@ func reloadAgentServers(k *koanf.Koanf, ctx context.Context, wg *sync.WaitGroup,
 		log.Trace(fmt.Sprintf("Noise P2P server shutdown error: %v", err))
 	}
 
-	wg_count -= SERVER_WAITGROUP_INSTANCES
+	wg_count -= AGENT_WAITGROUP_INSTANCES
 	wg.Done()
 
 	*noiseServer = *p2p.NewNode(ctx)
@@ -79,7 +79,7 @@ func startAgentServers(k *koanf.Koanf, wg *sync.WaitGroup, ctx context.Context, 
 		})
 	}
 
-	go p2p.StartServer(noiseServer)
+	go p2p.StartServer(ctx, noiseServer)
 }
 
 func init() {
@@ -106,9 +106,9 @@ func agentSignalHandler(signal os.Signal, wg *sync.WaitGroup) {
 	log.Trace(fmt.Sprintf("Active Waitgroup Instances: %d", wg_count))
 	switch signal {
 	case syscall.SIGTERM:
-		wg.Add(-SERVER_WAITGROUP_INSTANCES)
+		wg.Add(-AGENT_WAITGROUP_INSTANCES)
 	case syscall.SIGINT:
-		wg.Add(-SERVER_WAITGROUP_INSTANCES)
+		wg.Add(-AGENT_WAITGROUP_INSTANCES)
 	default:
 		fmt.Println("- unknown signal")
 	}

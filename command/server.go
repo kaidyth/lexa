@@ -113,7 +113,7 @@ func startServerServers(k *koanf.Koanf, wg *sync.WaitGroup, ctx context.Context,
 	go api.StartServer(k, httpServer)
 	go resolver.StartServer(dnsServer)
 	go resolver.StartServer(dotServer)
-	go p2p.StartServer(noiseServer)
+	go p2p.StartServer(ctx, noiseServer)
 }
 
 func serverSignalHandler(signal os.Signal, wg *sync.WaitGroup) {

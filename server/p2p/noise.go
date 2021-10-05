@@ -3,14 +3,25 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"net"
+	"time"
 
 	"github.com/apex/log"
+	"github.com/knadh/koanf"
 	"github.com/perlin-network/noise"
 	"github.com/perlin-network/noise/kademlia"
 )
 
 func NewNode(ctx context.Context) *noise.Node {
-	node, err := noise.NewNode()
+	k := ctx.Value("koanf").(*koanf.Koanf)
+	bind := k.String("server.p2p.bind")
+	bindAddr, _, _ := net.ParseCIDR(bind)
+	port := uint16(k.Int("server.p2p.port"))
+
+	node, err := noise.NewNode(
+		noise.WithNodeBindPort(port),
+		noise.WithNodeBindHost(bindAddr),
+	)
 	if err == nil {
 		return node
 	}
@@ -19,12 +30,35 @@ func NewNode(ctx context.Context) *noise.Node {
 	return nil
 }
 
-func StartServer(node *noise.Node) error {
+func StartServer(ctx context.Context, node *noise.Node) error {
+	k := ctx.Value("koanf").(*koanf.Koanf)
+
+	// Setup peer discovery
 	km := kademlia.New()
 	node.Bind(km.Protocol())
 	err := node.Listen()
-	fmt.Printf(node.Addr())
-	fmt.Printf("Node discovered %d peer(s).\n", len(km.Discover()))
+	km.Discover()
+
+	// Create a scan interval to check for new nodes that connect
+	peerScanInterval := k.Int("server.p2p.peerScanInterval")
+	if peerScanInterval <= 0 {
+		peerScanInterval = 5
+	}
+
+	interval := time.Duration(peerScanInterval) * time.Second
+	ticker := time.NewTicker(interval)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				log.Trace(fmt.Sprintf("Node discovered %d peer(s).\n", len(km.Discover())))
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 
 	return err
 }
