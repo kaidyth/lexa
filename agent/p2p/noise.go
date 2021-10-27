@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/apex/log"
+	"github.com/kaidyth/lexa/shared/messages"
 	"github.com/knadh/koanf"
 	"github.com/perlin-network/noise"
 	"github.com/perlin-network/noise/kademlia"
@@ -34,16 +36,62 @@ func NewNode(ctx context.Context) *noise.Node {
 func StartServer(ctx context.Context, node *noise.Node) error {
 	k := ctx.Value("koanf").(*koanf.Koanf)
 
+	node.RegisterMessage(messages.AgentInfoMessage{}, messages.UnmarshalAgentInfo)
+
+	// Handle the inbound connection as a relay
+	node.Handle(func(ctx noise.HandlerContext) error {
+		// Ignore messages from self
+		if node.ID().ID == ctx.ID().ID {
+			return nil
+		}
+
+		if ctx.IsRequest() {
+			return nil
+		}
+
+		obj, err := ctx.DecodeMessage()
+		if err != nil {
+			log.Debug(fmt.Sprintf("Unable to decode message: %v", err))
+			return nil
+		}
+
+		msg, ok := obj.(messages.AgentInfoMessage)
+		if !ok {
+			log.Debug(fmt.Sprintf("Unable to unserialize message: %v", err))
+			return nil
+		}
+
+		fmt.Printf("%s(%s)> %v\n", ctx.ID().Address, ctx.ID().ID.String()[:0], msg)
+
+		return nil
+	})
+
 	// Setup peer discovery
-	km := kademlia.New()
+	events := kademlia.Events{
+		OnPeerAdmitted: func(id noise.ID) {
+			log.Info(fmt.Sprintf("Learned about a new peer %s%s(%s).\n", id.Host.String(), id.Address, id.ID.String()))
+		},
+		OnPeerEvicted: func(id noise.ID) {
+			log.Info(fmt.Sprintf("Forgotten a peer %s%s(%s).\n", id.Host.String(), id.Address, id.ID.String()))
+		},
+	}
+
+	km := kademlia.New(kademlia.WithProtocolEvents(events))
 	node.Bind(km.Protocol())
 	err := node.Listen()
+	km.Discover()
+	node.Bind(km.Protocol())
+	node.Listen()
 
 	// Connect to our bootstrap nodes with a PING command
 	peers := k.Strings("agent.p2p.bootstrapPeers")
 	for _, peer := range peers {
-		node.Ping(context.TODO(), peer)
+		_, err := node.Ping(context.TODO(), peer)
+		if err != nil {
+			log.Trace(fmt.Sprintf("Unable to connect to peer %s: %s", peer, err))
+		}
 	}
+
 	km.Discover()
 
 	// Create a scan interval to check for new nodes that connect
@@ -51,6 +99,7 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 	if peerScanInterval <= 0 {
 		peerScanInterval = 5
 	}
+
 	interval := time.Duration(peerScanInterval) * time.Second
 	ticker := time.NewTicker(interval)
 	quit := make(chan struct{})
@@ -58,7 +107,31 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 		for {
 			select {
 			case <-ticker.C:
-				log.Trace(fmt.Sprintf("Node discovered %d peer(s).\n", len(km.Discover())))
+				// Attempt to re-connect known peers each loop to enable persistent peer discovery
+				for _, peer := range peers {
+					node.Ping(context.TODO(), peer)
+				}
+
+				// Advertise to all nodes what capabilities this agent has
+				log.Debug(fmt.Sprintf("Known hosts: %d", len(km.Discover())))
+
+				for _, id := range km.Discover() {
+					var services []messages.Service
+					k.Unmarshal("agent.service", &services)
+
+					hostname, _ := os.Hostname()
+					message := messages.AgentInfoMessage{
+						Name:     hostname,
+						Services: services,
+					}
+
+					log.Debug(fmt.Sprintf("Sending message to %v", id.Address))
+					err := node.SendMessage(context.TODO(), id.Address, message)
+					if err != nil {
+						log.Debug(fmt.Sprintf("Unable to send message: %v", err))
+					}
+
+				}
 			case <-quit:
 				ticker.Stop()
 				return
