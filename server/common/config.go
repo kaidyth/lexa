@@ -26,7 +26,7 @@ func SetupConfig(k *koanf.Koanf, provider koanf.Provider) {
 		"server.dns.tls.certificate":     nil,
 		"server.dns.tls.key":             nil,
 		"server.tls.mtls.ca_certificate": nil,
-		"server.p2p.bind":                "0.0.0.0",
+		"server.p2p.bind":                nil,
 		"server.p2p.port":                45861,
 		"server.p2p.peerScanInterval":    5,
 		"server.log.level":               "trace",

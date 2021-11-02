@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/apex/log"
@@ -16,23 +15,33 @@ import (
 	"github.com/knadh/koanf"
 	"github.com/perlin-network/noise"
 	"github.com/perlin-network/noise/kademlia"
+	"inet.af/netaddr"
 )
 
 func NewNode(ctx context.Context) *noise.Node {
 	k := ctx.Value("koanf").(*koanf.Koanf)
 	bind := k.String("server.p2p.bind")
-	bindAddr, _, _ := net.ParseCIDR(bind)
+	ip, _ := netaddr.ParseIP(bind)
+	bindAddr := ip.IPAddr().IP.To4()
 	port := uint16(k.Int("server.p2p.port"))
+	listenAddress := ip.String() + ":" + fmt.Sprintf("%d", port)
+	log.Info("Listening on: " + listenAddress)
+
+	if bind == "" || ip.IsLoopback() || ip.IsMulticast() || ip.String() == "0.0.0.0" {
+		log.Fatal(fmt.Sprintf("Unable to bind to (%s). Please use a non-local, non-multicast, and non 0.0.0.0 IP", ip.String()))
+	}
 
 	node, err := noise.NewNode(
 		noise.WithNodeBindPort(port),
 		noise.WithNodeBindHost(bindAddr),
+		noise.WithNodeAddress(listenAddress),
+		noise.WithNodeIdleTimeout(0),
 	)
 	if err == nil {
 		return node
 	}
 
-	log.Error(fmt.Sprintf("Unable to start Noise P2P Server: %v", err))
+	log.Fatal(fmt.Sprintf("Unable to start Noise P2P Server: %v", err))
 	return nil
 }
 
@@ -86,6 +95,8 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 			cacheManager.Set(ncxt.ID().ID.String(), []byte(msg.Name), options)
 			cacheManager.Set(msg.Name, data, options)
 		}
+
+		log.Debug(fmt.Sprintf("%v", allNodes))
 		return nil
 	})
 
@@ -100,23 +111,25 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 			// Get the cache key for the node
 			var data []byte
 			rawData, err := cacheManager.Get(id.ID.String())
-			data = rawData.([]byte)
-			name := bytes.NewBuffer(data).String()
-
 			if err == nil {
-				// Delete the node name
-				cacheManager.Delete(name)
+				data = rawData.([]byte)
+				name := bytes.NewBuffer(data).String()
 
-				// Delete the id
-				cacheManager.Delete(id.ID.String())
+				if err == nil {
+					// Delete the node name
+					cacheManager.Delete(name)
 
-				// Remove the node from AllNodes
-				allNodes := getAllNodes(cacheManager)
-				i, found := shared.Find(allNodes, name)
-				if found {
-					allNodes = removeIndex(allNodes, i)
-					encoded, _ := json.Marshal(allNodes)
-					cacheManager.Set("AllNodes", encoded, nil)
+					// Delete the id
+					cacheManager.Delete(id.ID.String())
+
+					// Remove the node from AllNodes
+					allNodes := getAllNodes(cacheManager)
+					i, found := shared.Find(allNodes, name)
+					if found {
+						allNodes = removeIndex(allNodes, i)
+						encoded, _ := json.Marshal(allNodes)
+						cacheManager.Set("AllNodes", encoded, nil)
+					}
 				}
 			}
 		},

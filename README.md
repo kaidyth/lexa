@@ -32,7 +32,26 @@ curl -qqsk https://127.0.0.1:18443/containers/ | jq .
           }
         ]
       },
-      "services": null
+      "services": [
+        {
+          "name": "http",
+          "port": 80,
+          "proto": "tcp",
+          "tags": [
+            "foo",
+            "bar"
+          ]
+        },
+        {
+          "name": "https",
+          "port": 443,
+          "proto": "tcp",
+          "tags": [
+            "foo2",
+            "bar2"
+          ]
+        }
+      ]
     },
     {
       "name": "nginx-php-80.lexa",
@@ -168,14 +187,54 @@ server {
           key = "/path/to/server.key"
       }
   }
+
+  p2p {
+    # The address to bind to.
+    # Lexa/Noise CANNOT bind to a loopback or multicast address, or 0.0.0.0
+    # You must manually specify this.
+    # With socket connections it is advised to set this to either the lxdbr0 interface, or the host IP
+    bind = "192.168.64.1"
+
+    # The Noise port to bind to
+    port = 45861
+
+    # The interval that peer discovery will run.
+    # Note that this also sets a cache-timeout floor for data
+    peerScanInterval = 5
+  }
 }
 
 # Agent configuration
 # This information is exlusively used for `lexa agent`
 agent {
-  peers = [
-    "192.168.64.2"
-  ]
+  p2p {
+    # Defaults to the LXD container name, but may be overwritten manually
+    hostname = "c1"
+
+    # The address to bind to.
+    # Lexa/Noise CANNOT bind to a loopback or multicast address, or 0.0.0.0
+    # You must manually specify this.
+    # With socket connections it is advised to set this to either the lxdbr0 interface, or the host IP
+    bind = "192.168.64.1"
+
+    # The Noise port to bind to
+    port = 45861
+
+    # The interval that peer discovery will run.
+    # Note that this also sets a cache-timeout floor for data
+    peerScanInterval = 5
+
+    # An array of peers to bootstrap.
+    # Nodes won't be able to connect unless at least one bootstrap node is specified
+    # This usually will be the lxdbr0 gateway IP:<lexa_p2p_server_port>
+    bootstrapPeers = [
+      "192.168.64.1:45861"
+    ]
+
+    # The interval that peer discovery will run.
+    # Note that this also sets a cache-timeout floor for data
+    peerScanInterval = 5
+  }
 
   service {
         name = "http"

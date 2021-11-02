@@ -15,7 +15,7 @@ func SetupConfig(k *koanf.Koanf, provider koanf.Provider) {
 	k.Load(confmap.Provider(map[string]interface{}{
 		"agent.p2p.bootstrapPeers":   []string{},
 		"agent.p2p.peerScanInterval": 5,
-		"agent.p2p.bind":             "0.0.0.0",
+		"agent.p2p.bind":             nil,
 		"agent.p2p.port":             45862,
 		"agent.p2p.hostname":         hostname,
 	}, "."), nil)

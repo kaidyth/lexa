@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -157,6 +158,10 @@ func StartServer(k *koanf.Koanf, server *http.Server) error {
 	}
 
 	err := server.ListenAndServeTLS(tlsCrt, tlsKey)
+
+	if err != nil {
+		log.Fatal(fmt.Sprintf("Unable to start HTTP server: %s", err))
+	}
 
 	return err
 }

@@ -99,7 +99,12 @@ func Shutdown(ctx context.Context, dnsServer *dns.Server) error {
 }
 
 func StartServer(server *dns.Server) error {
-	return server.ListenAndServe()
+	err := server.ListenAndServe()
+	if err != nil {
+		log.Fatal(fmt.Sprintf("Unable to start DNS server: %s", err))
+	}
+
+	return err
 }
 
 func parseQuery(m *dns.Msg, ctx context.Context) {
