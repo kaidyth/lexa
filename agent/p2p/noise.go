@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
 	"time"
 
 	"github.com/apex/log"
@@ -37,34 +36,6 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 	k := ctx.Value("koanf").(*koanf.Koanf)
 
 	node.RegisterMessage(messages.AgentInfoMessage{}, messages.UnmarshalAgentInfo)
-
-	// Handle the inbound connection as a relay
-	node.Handle(func(ctx noise.HandlerContext) error {
-		// Ignore messages from self
-		if node.ID().ID == ctx.ID().ID {
-			return nil
-		}
-
-		if ctx.IsRequest() {
-			return nil
-		}
-
-		obj, err := ctx.DecodeMessage()
-		if err != nil {
-			log.Debug(fmt.Sprintf("Unable to decode message: %v", err))
-			return nil
-		}
-
-		msg, ok := obj.(messages.AgentInfoMessage)
-		if !ok {
-			log.Debug(fmt.Sprintf("Unable to unserialize message: %v", err))
-			return nil
-		}
-
-		fmt.Printf("%s(%s)> %v\n", ctx.ID().Address, ctx.ID().ID.String()[:0], msg)
-
-		return nil
-	})
 
 	// Setup peer discovery
 	events := kademlia.Events{
@@ -119,18 +90,16 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 					var services []messages.Service
 					k.Unmarshal("agent.service", &services)
 
-					hostname, _ := os.Hostname()
+					hostname := k.String("agent.p2p.hostname")
 					message := messages.AgentInfoMessage{
 						Name:     hostname,
 						Services: services,
 					}
 
-					log.Debug(fmt.Sprintf("Sending message to %v", id.Address))
 					err := node.SendMessage(context.TODO(), id.Address, message)
 					if err != nil {
 						log.Debug(fmt.Sprintf("Unable to send message: %v", err))
 					}
-
 				}
 			case <-quit:
 				ticker.Stop()

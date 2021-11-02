@@ -3,7 +3,10 @@ module github.com/kaidyth/lexa
 go 1.16
 
 require (
+	github.com/allegro/bigcache/v3 v3.0.1
 	github.com/apex/log v1.9.0
+	github.com/eko/gocache v1.2.0
+	github.com/eko/gocache/v2 v2.1.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3 // indirect
 	github.com/forestgiant/sliceutil v0.0.0-20160425183142-94783f95db6c // indirect

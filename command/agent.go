@@ -9,8 +9,8 @@ import (
 	"syscall"
 
 	"github.com/apex/log"
+	"github.com/kaidyth/lexa/agent/common"
 	"github.com/kaidyth/lexa/agent/p2p"
-	"github.com/kaidyth/lexa/server/common"
 	"github.com/kaidyth/lexa/shared"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/hcl"

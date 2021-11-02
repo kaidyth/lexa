@@ -2,7 +2,11 @@ package command
 
 import (
 	"context"
+	"time"
 
+	"github.com/allegro/bigcache/v3"
+	"github.com/eko/gocache/cache"
+	"github.com/eko/gocache/store"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/spf13/cobra"
@@ -18,13 +22,22 @@ var (
 	}
 	k        = koanf.New(".")
 	provider = file.Provider("lexa.hcl")
+
+	// Don't leave your servers running for more than 5 years or you'll have a complete cache-eviction and Lexa will rebuild
+	cacheClient, _ = bigcache.NewBigCache(bigcache.DefaultConfig(10 * time.Second))
+	cacheStore     = store.NewBigcache(cacheClient, nil)
+	cacheManager   = cache.New(cacheStore)
 )
 
 // Execute runs our root command
 func Execute() error {
+	cacheManager.Set("AllNodes", []byte("[]"), nil)
+
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "koanf", k)
 	ctx = context.WithValue(ctx, "provider", provider)
+	ctx = context.WithValue(ctx, "cache", cacheManager)
+
 	return rootCmd.ExecuteContext(ctx)
 }
 

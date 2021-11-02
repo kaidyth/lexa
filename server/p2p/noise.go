@@ -1,12 +1,17 @@
 package p2p
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"time"
 
 	"github.com/apex/log"
+	"github.com/eko/gocache/cache"
+	"github.com/eko/gocache/store"
+	"github.com/kaidyth/lexa/shared"
 	"github.com/kaidyth/lexa/shared/messages"
 	"github.com/knadh/koanf"
 	"github.com/perlin-network/noise"
@@ -33,20 +38,27 @@ func NewNode(ctx context.Context) *noise.Node {
 
 func StartServer(ctx context.Context, node *noise.Node) error {
 	k := ctx.Value("koanf").(*koanf.Koanf)
+	cacheManager := ctx.Value("cache").(*cache.Cache)
+
+	// Create a scan interval to check for new nodes that connect
+	peerScanInterval := k.Int("server.p2p.peerScanInterval")
+	if peerScanInterval <= 0 {
+		peerScanInterval = 5
+	}
 
 	node.RegisterMessage(messages.AgentInfoMessage{}, messages.UnmarshalAgentInfo)
 	// Handle the inbound connection
-	node.Handle(func(ctx noise.HandlerContext) error {
+	node.Handle(func(ncxt noise.HandlerContext) error {
 		// Ignore messages from self
-		if node.ID().ID == ctx.ID().ID {
+		if node.ID().ID == ncxt.ID().ID {
 			return nil
 		}
 
-		if ctx.IsRequest() {
+		if ncxt.IsRequest() {
 			return nil
 		}
 
-		obj, err := ctx.DecodeMessage()
+		obj, err := ncxt.DecodeMessage()
 		if err != nil {
 			return nil
 		}
@@ -56,9 +68,24 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 			return nil
 		}
 
-		fmt.Printf("%s(%s)> %v\n", ctx.ID().Address, ctx.ID().ID.String()[:0], msg)
+		allNodes := getAllNodes(cacheManager)
+		_, found := shared.Find(allNodes, msg.Name)
+		if !found {
+			allNodes = append(allNodes, msg.Name)
+			encoded, _ := json.Marshal(allNodes)
+			cacheManager.Set("AllNodes", encoded, nil)
+		}
 
-		// @TODO: Store data in local cache for DataProvider to pick up for DNS or https resolution
+		data, err := json.Marshal(msg)
+		if err == nil {
+			// Store this in the cache for the peerScanInterval + .33 second for overhead
+			options := &store.Options{
+				Expiration: time.Duration(peerScanInterval) + (time.Second / 3),
+			}
+			// Store the node ID in the cache with a reference to the agent name
+			cacheManager.Set(ncxt.ID().ID.String(), []byte(msg.Name), options)
+			cacheManager.Set(msg.Name, data, options)
+		}
 		return nil
 	})
 
@@ -69,6 +96,29 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 		},
 		OnPeerEvicted: func(id noise.ID) {
 			log.Info(fmt.Sprintf("Forgotten a peer %s(%s).\n", id.Address, id.ID.String()))
+
+			// Get the cache key for the node
+			var data []byte
+			rawData, err := cacheManager.Get(id.ID.String())
+			data = rawData.([]byte)
+			name := bytes.NewBuffer(data).String()
+
+			if err == nil {
+				// Delete the node name
+				cacheManager.Delete(name)
+
+				// Delete the id
+				cacheManager.Delete(id.ID.String())
+
+				// Remove the node from AllNodes
+				allNodes := getAllNodes(cacheManager)
+				i, found := shared.Find(allNodes, name)
+				if found {
+					allNodes = removeIndex(allNodes, i)
+					encoded, _ := json.Marshal(allNodes)
+					cacheManager.Set("AllNodes", encoded, nil)
+				}
+			}
 		},
 	}
 
@@ -76,12 +126,6 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 	node.Bind(km.Protocol())
 	err := node.Listen()
 	km.Discover()
-
-	// Create a scan interval to check for new nodes that connect
-	peerScanInterval := k.Int("server.p2p.peerScanInterval")
-	if peerScanInterval <= 0 {
-		peerScanInterval = 5
-	}
 
 	interval := time.Duration(peerScanInterval) * time.Second
 	ticker := time.NewTicker(interval)
@@ -104,4 +148,20 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 func Shutdown(ctx context.Context, node *noise.Node) error {
 	log.Info("Noise server shutdown")
 	return node.Close()
+}
+
+func getAllNodes(cacheManager *cache.Cache) []string {
+	var allNodes []string
+	// Put the element in the all nodes list if it isn't found.
+	// This is non-atomic, and is eventually consistent with multi-nodes
+	// @TODO: implement an atomic insert
+	allNodesRaw, _ := cacheManager.Get("AllNodes")
+	allNodesRawBytes, _ := allNodesRaw.([]byte)
+	_ = json.Unmarshal(allNodesRawBytes, &allNodes)
+
+	return allNodes
+}
+
+func removeIndex(s []string, index int) []string {
+	return append(s[:index], s[index+1:]...)
 }

@@ -103,15 +103,13 @@ func StartServer(server *dns.Server) error {
 }
 
 func parseQuery(m *dns.Msg, ctx context.Context) {
-	k := ctx.Value("koanf").(*koanf.Koanf)
-
 	// Iterate over the question
 	for _, q := range m.Question {
 		hostname := dataset.GetBaseHostname(q.Name)
 		log.Trace(fmt.Sprintf("Query for %s %d, Hostname: %s\n", q.Name, q.Qtype, hostname))
 
 		// Grab the data source. This returns an error but []Hosts{} so we can ignroe the erro
-		ds, _ := dataset.NewDataset(k)
+		ds, _ := dataset.NewDataset(ctx)
 
 		// Filter the specific host data out
 		var hosts []dataset.Host

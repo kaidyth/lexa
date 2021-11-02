@@ -1,11 +1,14 @@
 package dataset
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"strings"
 
 	"github.com/apex/log"
+	"github.com/eko/gocache/cache"
+	"github.com/kaidyth/lexa/shared/messages"
 
 	"github.com/knadh/koanf"
 	lxd "github.com/lxc/lxd/client"
@@ -23,9 +26,9 @@ type Interfaces struct {
 }
 
 type Host struct {
-	Name       string     `json:"name"`
-	Interfaces Interfaces `json:"interfaces"`
-	Services   []string   `json:"services"` // @TODO Add Service Support
+	Name       string             `json:"name"`
+	Interfaces Interfaces         `json:"interfaces"`
+	Services   []messages.Service `json:"services"`
 }
 
 type Dataset struct {
@@ -55,8 +58,8 @@ func (i Interfaces) MarshalJSON() ([]byte, error) {
 	return json.Marshal(interfaceMap)
 }
 
-func NewDataset(k *koanf.Koanf) (*Dataset, error) {
-	hosts, err := initHosts(k)
+func NewDataset(ctx context.Context) (*Dataset, error) {
+	hosts, err := initHosts(ctx)
 	if err != nil {
 		log.Error("Unable to fetch hosts from upstream")
 		return &Dataset{
@@ -68,8 +71,11 @@ func NewDataset(k *koanf.Koanf) (*Dataset, error) {
 }
 
 func getConnection(k *koanf.Koanf) (lxd.InstanceServer, error) {
-	if k.String("lxd.socket") != "" {
-		instance, err := lxd.ConnectLXDUnix(k.String("lxd.socket"), nil)
+	socket := k.String("server.lxd.socket")
+	http := k.String("server.lxd.http")
+
+	if http == "" {
+		instance, err := lxd.ConnectLXDUnix(socket, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +87,10 @@ func getConnection(k *koanf.Koanf) (lxd.InstanceServer, error) {
 	return nil, nil
 }
 
-func initHosts(k *koanf.Koanf) ([]Host, error) {
+func initHosts(ctx context.Context) ([]Host, error) {
+	k := ctx.Value("koanf").(*koanf.Koanf)
+	cacheManager := ctx.Value("cache").(*cache.Cache)
+
 	hosts := []Host{}
 	conn, err := getConnection(k)
 	if err != nil {
@@ -102,7 +111,7 @@ func initHosts(k *koanf.Koanf) ([]Host, error) {
 			continue
 		}
 
-		host := Host{Name: container.Name + "." + k.String("suffix")}
+		host := Host{Name: container.Name + "." + k.String("server.suffix")}
 		interfaces := Interfaces{
 			IPv4: []InterfaceElement{},
 			IPv6: []InterfaceElement{}}
@@ -130,8 +139,16 @@ func initHosts(k *koanf.Koanf) ([]Host, error) {
 					}
 				}
 			}
+		}
 
-			// We also need to discover all other interfaces on the container
+		var agentInfoMessage messages.AgentInfoMessage
+		rawData, err := cacheManager.Get(container.Name)
+		if err == nil {
+			rawDataBytes, _ := rawData.([]byte)
+			err = json.Unmarshal(rawDataBytes, &agentInfoMessage)
+			if err == nil {
+				host.Services = agentInfoMessage.Services
+			}
 		}
 
 		host.Interfaces = interfaces

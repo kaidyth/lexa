@@ -1,6 +1,6 @@
 .vscode
 .air.toml
-lexa.hcl
+*.hcl
 /vendor
 /tmp
 lexa
