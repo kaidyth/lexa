@@ -71,7 +71,7 @@ func startAgentServers(k *koanf.Koanf, wg *sync.WaitGroup, ctx context.Context, 
 		log.Debug("Creating new Watching Provider")
 		provider.Watch(func(event interface{}, err error) {
 			k.Load(provider, hcl.Parser(true))
-			shared.NewLogger(k)
+			shared.NewLogger(k, "agent")
 			log.Debug("Watch event fired")
 			ctx = context.WithValue(ctx, "koanf", k)
 			ctx = context.WithValue(ctx, "provider", provider)
@@ -89,13 +89,13 @@ func init() {
 func agentPersistentPreRun(cmd *cobra.Command, args []string) {
 	provider = file.Provider(configFile)
 	// Setup the initial logger to stdout with INFO level
-	shared.NewLogger(k)
+	shared.NewLogger(k, "agent")
 
 	// Read the configuration file
 	common.SetupConfig(k, provider)
 
 	// Reload the logger configuration
-	shared.NewLogger(k)
+	shared.NewLogger(k, "agent")
 }
 
 func agentSignalHandler(signal os.Signal, wg *sync.WaitGroup) {

@@ -210,6 +210,16 @@ func GetBaseHostname(hostname string) string {
 	return hostname
 }
 
+func HasService(host Host, serviceName string) (bool, messages.Service) {
+	for _, srv := range host.Services {
+		if serviceName == srv.Name {
+			return true, srv
+		}
+	}
+
+	return false, messages.Service{}
+}
+
 func after(value string, a string) string {
 	// Get substring after a string.
 	pos := strings.LastIndex(value, a)

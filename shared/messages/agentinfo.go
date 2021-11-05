@@ -6,10 +6,11 @@ import (
 )
 
 type Service struct {
-	Name  string   `json:"name"`
-	Port  int      `json:"port"`
-	Proto string   `json:"proto"`
-	Tags  []string `json:"tags"`
+	Name      string   `json:"name"`
+	Port      int      `json:"port"`
+	Proto     string   `json:"proto"`
+	Tags      []string `json:"tags"`
+	Interface string   `json:"interface"`
 }
 
 type AgentInfoMessage struct {

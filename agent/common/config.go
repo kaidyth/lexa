@@ -18,6 +18,8 @@ func SetupConfig(k *koanf.Koanf, provider koanf.Provider) {
 		"agent.p2p.bind":             nil,
 		"agent.p2p.port":             45862,
 		"agent.p2p.hostname":         hostname,
+		"agent.log.level":            "trace",
+		"agent.log.path":             "stdout",
 	}, "."), nil)
 
 	if err := k.Load(provider, hcl.Parser(true)); err != nil {

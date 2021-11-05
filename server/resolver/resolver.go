@@ -3,17 +3,26 @@ package resolver
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/apex/log"
 	"github.com/kaidyth/lexa/server/dataset"
 	"github.com/kaidyth/lexa/shared"
+	"github.com/kaidyth/lexa/shared/messages"
 	"github.com/knadh/koanf"
 	"github.com/miekg/dns"
 	"github.com/ryanuber/go-glob"
 )
+
+type ResolverServiceData struct {
+	Service  messages.Service
+	Host     dataset.Host
+	Hostname string
+}
 
 // NewResolver creates a new DNS resolver
 func NewResolver(ctx context.Context) *dns.Server {
@@ -108,48 +117,126 @@ func StartServer(server *dns.Server) error {
 }
 
 func parseQuery(m *dns.Msg, ctx context.Context) {
+	k := ctx.Value("koanf").(*koanf.Koanf)
 	// Iterate over the question
 	for _, q := range m.Question {
-		hostname := dataset.GetBaseHostname(q.Name)
-		log.Trace(fmt.Sprintf("Query for %s %d, Hostname: %s\n", q.Name, q.Qtype, hostname))
-
-		// Grab the data source. This returns an error but []Hosts{} so we can ignroe the erro
+		// Grab the data source. This returns an error but []Hosts{} so we can ignroe the error
 		ds, _ := dataset.NewDataset(ctx)
 
-		// Filter the specific host data out
-		var hosts []dataset.Host
+		// SRV Records aren't host specific, so pull the data directly from the dataset
+		if q.Qtype == dns.TypeSRV {
+			if dataset.IsServicesQuery(q.Name) {
+				log.Trace(fmt.Sprintf("Query for %s %d", q.Name, q.Qtype))
+				services, err := getAddressesForService(q.Name, ds)
 
-		// Iterate over all hosts in the dataset, and glob match for wildcards, and construct an array of matching hosts
-		for _, hostElement := range ds.Hosts {
-			// Strip the .if., .interfaces., and .services. section from the query name
-			if hostElement.Name+"." == hostname || glob.Glob(hostname, hostElement.Name+".") {
-				hosts = append([]dataset.Host{hostElement}, hosts...)
-			}
-		}
-
-		for _, host := range hosts {
-			switch q.Qtype {
-			case dns.TypeA:
-				addresses, rt := getAddressesForQueryType(host, q.Name, "IPv4")
-
-				for _, address := range addresses {
-					rr, err := dns.NewRR(fmt.Sprintf("%s 0 %s %s", q.Name, rt, address.IP.String()))
-					if err == nil {
-						m.Answer = append(m.Answer, rr)
+				log.Debug(fmt.Sprintf("%v", services))
+				if err == nil {
+					for _, service := range services {
+						interfaceBoundHostName, err := getInterfaceBoundHostNameForService(service)
+						if err == nil {
+							rr, err := dns.NewRR(fmt.Sprintf("%s 0 SRV %d %d %d %s", q.Name, 1, 1, service.Service.Port, interfaceBoundHostName+"."+k.String("service.suffix")))
+							log.Debug(fmt.Sprintf("%v", err))
+							if err == nil {
+								m.Answer = append(m.Answer, rr)
+							}
+						}
 					}
 				}
-			case dns.TypeAAAA:
-				addresses, rt := getAddressesForQueryType(host, q.Name, "IPv6")
+			}
+		} else {
+			hostname := dataset.GetBaseHostname(q.Name)
+			log.Trace(fmt.Sprintf("Query for %s %d, Hostname: %s\n", q.Name, q.Qtype, hostname))
 
-				for _, address := range addresses {
-					rr, err := dns.NewRR(fmt.Sprintf("%s 0 %s %s", q.Name, rt, address.IP.String()))
-					if err == nil {
-						m.Answer = append(m.Answer, rr)
+			// Filter the specific host data out
+			var hosts []dataset.Host
+
+			// Iterate over all hosts in the dataset, and glob match for wildcards, and construct an array of matching hosts
+			for _, hostElement := range ds.Hosts {
+				// Strip the .if., .interfaces., and .services. section from the query name
+				if hostElement.Name+"." == hostname || glob.Glob(hostname, hostElement.Name+".") {
+					hosts = append([]dataset.Host{hostElement}, hosts...)
+				}
+			}
+
+			// Filter specific A, AAAA records
+			for _, host := range hosts {
+				switch q.Qtype {
+				case dns.TypeA:
+					addresses, rt := getAddressesForQueryType(host, q.Name, "IPv4")
+
+					for _, address := range addresses {
+						rr, err := dns.NewRR(fmt.Sprintf("%s 0 %s %s", q.Name, rt, address.IP.String()))
+						if err == nil {
+							m.Answer = append(m.Answer, rr)
+						}
+					}
+				case dns.TypeAAAA:
+					addresses, rt := getAddressesForQueryType(host, q.Name, "IPv6")
+
+					for _, address := range addresses {
+						rr, err := dns.NewRR(fmt.Sprintf("%s 0 %s %s", q.Name, rt, address.IP.String()))
+						if err == nil {
+							m.Answer = append(m.Answer, rr)
+						}
 					}
 				}
 			}
 		}
 	}
+}
+
+func getAddressesForService(queryString string, ds *dataset.Dataset) ([]ResolverServiceData, error) {
+	var services []ResolverServiceData
+
+	isRFC2782, serviceName, proto := isRFC2782(queryString)
+	if isRFC2782 {
+		// Iterate through all of the hosts and find all those that match the service name and protocol
+		for _, host := range ds.Hosts {
+			hasService, srv := dataset.HasService(host, serviceName)
+			if hasService && srv.Proto == proto {
+				service := ResolverServiceData{Service: srv, Host: host, Hostname: host.Name}
+				services = append(services, service)
+			}
+		}
+
+		return services, nil
+	} else {
+
+	}
+
+	return services, nil
+}
+
+func isRFC2782(queryString string) (bool, string, string) {
+	segments := strings.Split(queryString, ".")
+	if len(segments) <= 4 {
+		return false, "", ""
+	}
+
+	serviceName := segments[0]
+	proto := segments[1]
+
+	if serviceName[0:1] == "_" && proto[0:1] == "_" {
+		return true, serviceName[1:len(serviceName)], proto[1:len(proto)]
+	}
+
+	return false, "", ""
+}
+
+func getInterfaceBoundHostNameForService(service ResolverServiceData) (string, error) {
+	// If the service doesn't specify the interface to bind to, then push the first interface
+	if service.Service.Interface == "" {
+		return service.Host.Interfaces.IPv4[0].Name + ".if." + service.Host.Name, nil
+	}
+
+	// If a interface name _is_ specified, then we need to find that specific interface and return it
+	for i, ifce := range service.Host.Interfaces.IPv4 {
+		if ifce.Name == service.Service.Interface {
+			return service.Host.Interfaces.IPv4[i].Name + ".if." + service.Host.Name, nil
+		}
+	}
+
+	return "", errors.New("Interface not found")
 }
 
 func getAddressesForQueryType(host dataset.Host, queryString string, t string) ([]dataset.InterfaceElement, string) {
