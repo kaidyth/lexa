@@ -92,9 +92,6 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 					node.Ping(context.TODO(), peer)
 				}
 
-				// Advertise to all nodes what capabilities this agent has
-				log.Debug(fmt.Sprintf("Known hosts: %d", len(km.Discover())))
-
 				for _, id := range km.Discover() {
 					var services []messages.Service
 					k.Unmarshal("agent.service", &services)

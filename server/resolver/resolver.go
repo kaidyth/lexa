@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/apex/log"
 	"github.com/kaidyth/lexa/server/dataset"
@@ -129,8 +131,9 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 				log.Trace(fmt.Sprintf("Query for %s %d", q.Name, q.Qtype))
 				services, err := getAddressesForService(q.Name, ds)
 
-				log.Debug(fmt.Sprintf("%v", services))
 				if err == nil {
+					rand.Seed(time.Now().UnixNano())
+					rand.Shuffle(len(services), func(i, j int) { services[i], services[j] = services[j], services[i] })
 					for _, service := range services {
 						interfaceBoundHostName, err := getInterfaceBoundHostNameForService(service)
 						if err == nil {
@@ -193,9 +196,18 @@ func getAddressesForService(queryString string, ds *dataset.Dataset) ([]Resolver
 		// Iterate through all of the hosts and find all those that match the service name and protocol
 		for _, host := range ds.Hosts {
 			hasService, srv := dataset.HasService(host, serviceName)
-			if hasService && srv.Proto == proto {
-				service := ResolverServiceData{Service: srv, Host: host, Hostname: host.Name}
-				services = append(services, service)
+			if hasService {
+				// Return TCP/UDP first
+				if (srv.Proto == "tcp" || srv.Proto == "udp") && srv.Proto == proto {
+					service := ResolverServiceData{Service: srv, Host: host, Hostname: host.Name}
+					services = append(services, service)
+				} else {
+					// Filter by tag otherwise
+					if shared.Contains(srv.Tags, proto) {
+						service := ResolverServiceData{Service: srv, Host: host, Hostname: host.Name}
+						services = append(services, service)
+					}
+				}
 			}
 		}
 

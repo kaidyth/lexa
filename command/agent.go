@@ -36,7 +36,8 @@ var agentCmd = &cobra.Command{
 		wg.Add(AGENT_WAITGROUP_INSTANCES)
 		wg_count = AGENT_WAITGROUP_INSTANCES
 
-		startAgentServers(k, &wg, ctx, provider, noiseServer, false)
+		hotReload := k.Bool("agent.hotreload")
+		startAgentServers(k, &wg, ctx, provider, noiseServer, !hotReload)
 
 		// Create a signal handler for TERM, INT, and USR1
 		var captureSignal = make(chan os.Signal, 1)

@@ -12,6 +12,7 @@ import (
 func SetupConfig(k *koanf.Koanf, provider koanf.Provider) {
 	k.Load(confmap.Provider(map[string]interface{}{
 		"server.suffix":                  "lexa",
+		"server.hotreload":               false,
 		"server.lxd.socket":              "/var/snap/lxd/common/lxd/unix.socket",
 		"server.lxd.http":                nil,
 		"server.tls.bind":                "0.0.0.0",

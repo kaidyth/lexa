@@ -120,15 +120,63 @@ dig eth0.interface.hostname.lexa @127.0.0.1 -p 18053
 
 #### Query a specific service name
 
-Specific services exposed by the agent can be queried
+Several options exists for querying services, and retrieving a list of IP's.
+
+##### Standard Lookup
+
+The format of the standard serviec lookup is:
 
 ```
-dig nginx.service.hostname.lexa @127.0.0.1 -p 18053
+[tag.].<service>.service.<prefix>
+```
+
+The tag parameter is option, and if provided will do result filtering. If no tag is provided, no filtering is done on the tag.
+
+As an example, if we wanted to find all `https` servers, we could query `https.service.lexa`. If we're looking for our `primary` MySQL replica, utilizing tags we could perform tag filtering by querying: `primary.mysql.service.lexa`.
+
+##### RFC 2782
+
+The format for RFC 2782 SRV lookups is:
+
+```
+_<service>._<protocol>.service.<prefix>
+```
+
+The response of which will contain the following:
+
+```
+_<service>._<protocol>.service.<prefix> <ttl> IN SRV <priority> <weight> <port> <if_target>
+```
+
+> NOTE: The TTL will always be 0 to prevent caching. The `priority` and `weight` are currently not implemented, but may be added in a future version of Lexa.
+
+SRV queries should use underscores, `_` as the prefix to the `service` and `protocol` values in the query to prevent DNS collisions. The `protocol` can either be `tcp`, `udp`, or any of the tags listed on the service. If `tcp` or `udp` is used, tag filtering will be disabled. If a service has no tags `tcp` or `udp` should be used.
+
+Lexa will always return an interface specific query response. By default it will return the defualt interface for the container, unless specified otherwise in the agent `service` configuration for the given service. If a given interface does not exist in the agent config the service won't be returned.
+
+For load balancing purposes, the order of responses are randomized on each query
+
+```
+dig _https._tcp.service.lexa @127.0.0.1 -p 18053
+
+; <<>> DiG 9.16.1-Ubuntu <<>> _web._tcp.service.lexa @127.0.0.1 -p 18053 SRV
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 47260
+;; flags: qr rd; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;_web._tcp.service.lexa.               IN       SRV
+
+;; ANSWER SECTION:
+_https._tcp.service.lexa. 0       IN     SRV      1 1 80 eth0.if.c1.lexa.
+_https._tcp.service.lexa. 0       IN     SRV      1 1 80 eth0.if.c2.lexa.
 ```
 
 ### DoT
 
-Lexa supports a DNS over TLS (DoT) resolver as well if your platform requires secure DNS between your resolvers:
+Lexa supports a DNS over TLS (DoT) resolver as well if your platform requires secure DNS between your resolvers. All DNS features are supported in the DoT resolver.
 
 ```
 kdig hostname.lexa @127.0.0.1 -p 18853 +tls
@@ -227,6 +275,7 @@ agent {
     # An array of peers to bootstrap.
     # Nodes won't be able to connect unless at least one bootstrap node is specified
     # This usually will be the lxdbr0 gateway IP:<lexa_p2p_server_port>
+    # Similarily to to the bind port, this must be the actual interface
     bootstrapPeers = [
       "192.168.64.1:45861"
     ]
@@ -236,20 +285,31 @@ agent {
     peerScanInterval = 5
   }
 
+  # Each agent can host multiple services
   service {
+        # The name to recognize the service by
         name = "http"
+
+        # The port
         port = 80
+
+        # The Protocol. TCP or UDP
         proto = "tcp"
+
+        # Any custom tags you wish to assign to the service.
+        # Lexa can aggregate tags for non RFC 2782 queries
         tags = [
-            "app"         # app.http.service.<container>.lexa
+            "app"         # app.http.service.lexa
         ]
+        interface = "eth0" # Optional
     }
+
     service {
         name = "https"
         port = 443
         proto = "tcp"
         tags = [
-            "app"         # app.https.service.<container>.lexa
+            "app"         # app.https.service.lexa
         ]
     }
 }
@@ -333,6 +393,21 @@ backend ha_lxd
     mode http
     balance roundrobin
     server-template web 5 example-*.lexa:443 check resolvers lexa init-addr none  ssl verify none
+
+backend ha_lxd_rfc2782
+    mode http
+    balance roundrobin
+    server-template web 5 _https._tcp.service.lexa:443 check resolvers lexa init-addr none  ssl verify none
+
+backend ha_lxd_service
+    mode http
+    balance roundrobin
+    server-template web 5 https.service.lexa:443 check resolvers lexa init-addr none  ssl verify none
+
+backend ha_lxd_service_tagged
+    mode http
+    balance roundrobin
+    server-template web 5 app.https.service.lexa:443 check resolvers lexa init-addr none  ssl verify none
 ```
 
 ### CoreDNS
@@ -355,3 +430,23 @@ lexa {
     # }
 }
 ```
+
+## Limitations
+
+Lexa does have some limitations to be aware of when using it.
+
+### Configuration Hot Reloading
+
+Experimental support is provided for hot-reloading configurations via `service.hotreload` and `agent.hotreload`. This behavior is experimental, and services may crash due to either invalid configuration entries on save. Setting these values to true will cause lexa to reload configuration on configuration file save.
+
+### Agent Connectivity
+
+Lexa utilizes `Noise` to achieve a rudimentary p2p connectivity between services. On a single machine ensure you utilize the `lxdbr0` or bridged IP's to ensure connectivity between all nodes.
+
+### LXD Cluster
+
+LXD clusters are currently untested. While the interface should work, no support is currently provided for clustered setups, and the results IP. Lexa currently cannot differentiate between ips across different hosts.
+
+### Multiple Servers
+
+Lexa cannot differentiate services or interface across multiple independent servers. (eg server 1 has lxd container a, b, c and server 2 has containers d, e, f). No support is provided for connecting to multiple LXD instances concurrently at this time.

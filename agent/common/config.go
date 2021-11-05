@@ -13,6 +13,7 @@ import (
 func SetupConfig(k *koanf.Koanf, provider koanf.Provider) {
 	hostname, _ := os.Hostname()
 	k.Load(confmap.Provider(map[string]interface{}{
+		"agent.hotreload":            false,
 		"agent.p2p.bootstrapPeers":   []string{},
 		"agent.p2p.peerScanInterval": 5,
 		"agent.p2p.bind":             nil,

@@ -44,7 +44,8 @@ var serverCmd = &cobra.Command{
 		wg.Add(SERVER_WAITGROUP_INSTANCES)
 		wg_count = SERVER_WAITGROUP_INSTANCES
 
-		startServerServers(k, &wg, ctx, provider, httpServer, dnsServer, dotServer, noiseServer, false)
+		hotReload := k.Bool("server.hotreload")
+		startServerServers(k, &wg, ctx, provider, httpServer, dnsServer, dotServer, noiseServer, !hotReload)
 
 		// Create a signal handler for TERM, INT, and USR1
 		var captureSignal = make(chan os.Signal, 1)
