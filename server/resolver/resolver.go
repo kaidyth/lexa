@@ -138,7 +138,6 @@ func parseQuery(m *dns.Msg, ctx context.Context) {
 						interfaceBoundHostName, err := getInterfaceBoundHostNameForService(service)
 						if err == nil {
 							rr, err := dns.NewRR(fmt.Sprintf("%s 0 SRV %d %d %d %s", q.Name, 1, 1, service.Service.Port, interfaceBoundHostName+"."+k.String("service.suffix")))
-							log.Debug(fmt.Sprintf("%v", err))
 							if err == nil {
 								m.Answer = append(m.Answer, rr)
 							}
@@ -210,13 +209,38 @@ func getAddressesForService(queryString string, ds *dataset.Dataset) ([]Resolver
 				}
 			}
 		}
-
-		return services, nil
 	} else {
-
+		tag, serviceName := getTagAndServiceName(queryString)
+		for _, host := range ds.Hosts {
+			hasService, srv := dataset.HasService(host, serviceName)
+			if hasService {
+				if tag == "" {
+					service := ResolverServiceData{Service: srv, Host: host, Hostname: host.Name}
+					services = append(services, service)
+				} else {
+					if shared.Contains(srv.Tags, tag) {
+						service := ResolverServiceData{Service: srv, Host: host, Hostname: host.Name}
+						services = append(services, service)
+					}
+				}
+			}
+		}
 	}
 
 	return services, nil
+}
+
+func getTagAndServiceName(queryString string) (string, string) {
+	segments := strings.Split(queryString, ".")
+	if len(segments) <= 3 {
+		return "", ""
+	}
+
+	if segments[1] == "service" {
+		return "", segments[0]
+	}
+
+	return segments[0], segments[1]
 }
 
 func isRFC2782(queryString string) (bool, string, string) {

@@ -333,11 +333,13 @@ Usage: `lexa agent --config /path/to/lexa.hcl`
 
 > By default Lexa will search for lexa.hcl in the local and home directory of the user running it if a configuration path is not defined, and will gracefully fallback to sane defaults otherwise.
 
-### Relay
+### Cluster
 
-The relay server provides a bridge between the lexa agent and lexa hosts if they aren't able to communicate directly.
+Cluster provides an overlay interface for querying multiple lexa backends, which you can use to loadbalancer across multiple LXD servers. As an example, you may use Lexa cluster if you have multiple servers running their own LXD instance, and need to know the bridge, or wireguard IP address of any node known to any backend Lexa server.
 
-Usage: `lexa relay --config /path/to/lexa.hcl`
+Lexa Cluster exposes the same HTTP and DNS API's as `lexa server`.
+
+Usage: `lexa cluster --config /path/to/lexa.hcl`
 
 > By default Lexa will search for lexa.hcl in the local and home directory of the user running it if a configuration path is not defined, and will gracefully fallback to sane defaults otherwise.
 
@@ -449,4 +451,4 @@ LXD clusters are currently untested. While the interface should work, no support
 
 ### Multiple Servers
 
-Lexa cannot differentiate services or interface across multiple independent servers. (eg server 1 has lxd container a, b, c and server 2 has containers d, e, f). No support is provided for connecting to multiple LXD instances concurrently at this time.
+Lexa cannot differentiate services or interface across multiple independent servers. (eg server 1 has lxd container a, b, c and server 2 has containers d, e, f). If you're querying across multiple servers, make sure you're using a accessable interface, such as a network bridge, Wireguard, or another p2p VPN.

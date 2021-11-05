@@ -96,7 +96,6 @@ func StartServer(ctx context.Context, node *noise.Node) error {
 			cacheManager.Set(msg.Name, data, options)
 		}
 
-		log.Trace(fmt.Sprintf("Known Nodes: %v", allNodes))
 		return nil
 	})
 
