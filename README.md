@@ -335,7 +335,9 @@ Usage: `lexa agent --config /path/to/lexa.hcl`
 
 ### Cluster
 
-Cluster provides an overlay interface for querying multiple lexa backends, which you can use to loadbalancer across multiple LXD servers. As an example, you may use Lexa cluster if you have multiple servers running their own LXD instance, and need to know the bridge, or wireguard IP address of any node known to any backend Lexa server.
+Cluster provides an overlay interface for querying multiple lexa backends, which you can use to loadbalancer across multiple LXD servers. Lexa cluster simply queries all known backend `lexa server` nodes, then returns an aggregated dataset, and does not translate mixed IP addresses across different LXD networks or NATs.
+
+As an example, you may use Lexa cluster if you have multiple servers running their own LXD instance, and need to know the bridge, or wireguard IP address of any node known to any backend Lexa server.
 
 Lexa Cluster exposes the same HTTP and DNS API's as `lexa server`.
 
@@ -389,32 +391,34 @@ frontend https-in
     # Redirect non TLS Traffic to HTTPs
     http-request redirect location https://%[req.hdr(Host)]%[capture.req.uri] if !{ ssl_fc }
 
-    default_backend             ha_lxc
-
-backend ha_lxd
-    mode http
-    balance roundrobin
-    server-template web 5 example-*.lexa:443 check resolvers lexa init-addr none  ssl verify none
+    default_backend             ha_lxd_service
 
 backend ha_lxd_rfc2782
     mode http
     balance roundrobin
-    server-template web 5 _https._tcp.service.lexa:443 check resolvers lexa init-addr none  ssl verify none
+    server-template web 5 _https._tcp.service.lexa check resolvers lexa init-addr none  ssl verify none
 
 backend ha_lxd_service
     mode http
     balance roundrobin
-    server-template web 5 https.service.lexa:443 check resolvers lexa init-addr none  ssl verify none
+    server-template web 5 https.service.lexa check resolvers lexa init-addr none  ssl verify none
 
 backend ha_lxd_service_tagged
     mode http
     balance roundrobin
-    server-template web 5 app.https.service.lexa:443 check resolvers lexa init-addr none  ssl verify none
+    server-template web 5 app.https.service.lexa check resolvers lexa init-addr none  ssl verify none
+
+# If your contains are deployed with a specific name schema:  eg example-<sha256:0:6>.lexa
+# SRV Service discovery is preferred, but this is provided as an option if you have a fixed domain, or fixed domain schema you want to connect with
+backend ha_lxd
+    mode http
+    balance roundrobin
+    server-template web 5 example-*.lexa:443 check resolvers lexa init-addr none  ssl verify none
 ```
 
 ### CoreDNS
 
-Integrate Lexa as a CoreDNS upstream
+Integrate Lexa as a CoreDNS resolver so that you can have a single DNS resolver in your architecture to query against.
 
 ```
 lexa {
@@ -433,6 +437,8 @@ lexa {
 }
 ```
 
+> On Ubuntu, it is recommended to configure systemd-resolvd to point to CoreDNS as your primary resolver.
+
 ## Limitations
 
 Lexa does have some limitations to be aware of when using it.
@@ -447,8 +453,4 @@ Lexa utilizes `Noise` to achieve a rudimentary p2p connectivity between services
 
 ### LXD Cluster
 
-LXD clusters are currently untested. While the interface should work, no support is currently provided for clustered setups, and the results IP. Lexa currently cannot differentiate between ips across different hosts.
-
-### Multiple Servers
-
-Lexa cannot differentiate services or interface across multiple independent servers. (eg server 1 has lxd container a, b, c and server 2 has containers d, e, f). If you're querying across multiple servers, make sure you're using a accessable interface, such as a network bridge, Wireguard, or another p2p VPN.
+LXD clusters are currently untested. While the interface should work, no support is currently provided for clustered setups, and the results IP. Lexa currently cannot differentiate between ips across different hosts. When using Lexa cluster, ensure the bound addresses utilize either a bridged IP, or a shared VPN.
