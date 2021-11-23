@@ -24,7 +24,7 @@ import (
 const CLUSTER_WAITGROUP_INSTANCES = 3
 
 var clusterCmd = &cobra.Command{
-	Use:              "server",
+	Use:              "cluster",
 	PersistentPreRun: clusterPersistentPreRun,
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
