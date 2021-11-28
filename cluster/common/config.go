@@ -16,7 +16,6 @@ func SetupConfig(k *koanf.Koanf, provider koanf.Provider) {
 		"cluster.backend.servers":         []string{},
 		"cluster.backend.dnsServers":      []string{},
 		"cluster.backend.insecure":        false,
-		"cluster.lxd.http":                nil,
 		"cluster.tls.bind":                "0.0.0.0",
 		"cluster.tls.port":                18443,
 		"cluster.tls.so_reuse_port":       false,
