@@ -16,9 +16,6 @@ steps:
   - name: pre_package
     depends_on:
       - build
-    when:
-      event:
-        - tag
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
         - mkdir -p package
@@ -27,6 +24,7 @@ steps:
         - mkdir -p package/usr/local/bin
         - cp lexa package/usr/local/bin/lexa
         - cp lexa.service package/etc/systemd/system/lexa.service
+        - ls -laht
   - name: package_debian
     depends_on:
       - pre_package
@@ -76,9 +74,6 @@ steps:
   - name: pre_package
     depends_on:
       - build
-    when:
-      event:
-        - tag
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
         - mkdir -p package
@@ -87,6 +82,7 @@ steps:
         - mkdir -p package/usr/local/bin
         - cp lexa package/usr/local/bin/lexa
         - cp lexa.service package/etc/systemd/system/lexa.service
+        - ls -laht
   - name: package_debian
     depends_on:
       - pre_package
