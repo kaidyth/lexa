@@ -16,6 +16,9 @@ steps:
   - name: pre_package
     depends_on:
       - build
+    when:
+      event:
+        - tag
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
         - mkdir -p scratch/alpine
@@ -74,6 +77,9 @@ steps:
   - name: pre_package
     depends_on:
       - build
+    when:
+      event:
+        - tag
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
         - mkdir -p scratch/alpine
