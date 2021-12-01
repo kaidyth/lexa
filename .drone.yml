@@ -35,7 +35,7 @@ steps:
       - pre_package
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -s dir -t apk -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir /drone/src/scratch
+      - fpm -s dir -t apk -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).apk -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir /drone/src/scratch
   - name: github-publish
     image: plugins/github-release
     depends_on:
@@ -48,8 +48,8 @@ steps:
       api_key:
         from_secret: GITHUB_API_KEY
       files:
-        - *.apk
-        - *.deb
+        - lexa-${DRONE_TAG}-$(uname -m).apk
+        - lexa-${DRONE_TAG}-$(uname -m).deb
         - lexa-$(uname -m)
       title: ${DRONE_TAG}
       checksum:
@@ -92,7 +92,7 @@ steps:
       - pre_package
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -s dir -t apk -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir /drone/src/scratch
+      - fpm -s dir -t apk -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).apk -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir /drone/src/scratch
   - name: github-publish
     image: plugins/github-release
     depends_on:
@@ -105,8 +105,8 @@ steps:
       api_key:
         from_secret: GITHUB_API_KEY
       files:
-        - *.apk
-        - *.deb
+        - lexa-${DRONE_TAG}-$(uname -m).apk
+        - lexa-${DRONE_TAG}-$(uname -m).deb
         - lexa-$(uname -m)
       title: ${DRONE_TAG}
       checksum:
