@@ -18,7 +18,8 @@ steps:
       - build
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-        - mkdir -p scratch/
+        - mkdir -p scratch/alpine
+        - mkdir -p scratch/debian
         - mkdir -p package/etc/systemd/system
         - mkdir -p package/etc/lexa
         - mkdir -p package/usr/local/bin
@@ -29,13 +30,13 @@ steps:
       - pre_package
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-      - fpm -s dir -t deb -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz --workdir /drone/src/scratch
+      - fpm -s dir -t deb -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz --workdir /drone/src/scratch/debian
   - name: package_alpine
     depends_on:
       - pre_package
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -s dir -t apk -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).apk -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir /drone/src/scratch
+      - fpm -s dir -t apk -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).apk -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir /drone/src/scratch/alpine
   - name: github-publish
     image: plugins/github-release
     depends_on:
@@ -75,7 +76,8 @@ steps:
       - build
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-        - mkdir -p scratch/
+        - mkdir -p scratch/alpine
+        - mkdir -p scratch/debian
         - mkdir -p package/etc/systemd/system
         - mkdir -p package/etc/lexa
         - mkdir -p package/usr/local/bin
@@ -86,13 +88,13 @@ steps:
       - pre_package
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-      - fpm -s dir -t deb -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz --workdir /drone/src/scratch
+      - fpm -s dir -t deb -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz --workdir /drone/src/scratch/debian
   - name: package_alpine
     depends_on:
       - pre_package
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -s dir -t apk -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).apk -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir /drone/src/scratch
+      - fpm -s dir -t apk -n lexa -v ${DRONE_TAG}-$(uname -m) -C ./package/ -p lexa-${DRONE_TAG}-$(uname -m).apk -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir /drone/src/scratch/alpine
   - name: github-publish
     image: plugins/github-release
     depends_on:
