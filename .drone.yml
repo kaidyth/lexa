@@ -17,7 +17,7 @@ steps:
       - build
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-      - fpm -dir \
+      - fpm -s dir \
         -t deb \
         -n lexa \
         -v 0.1.0-$(uname -m) \
@@ -38,7 +38,7 @@ steps:
       - build
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -dir \
+      - fpm -s dir \
         -t apk \
         -n lexa \
         -v 0.1.0-$(uname -m) \
@@ -70,7 +70,7 @@ steps:
       - build
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-      - fpm -dir \
+      - fpm -s dir \
         -t deb \
         -n lexa \
         -v 0.1.0-$(uname -m) \
@@ -91,7 +91,7 @@ steps:
       - build
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -dir \
+      - fpm -s dir \
         -t apk \
         -n lexa \
         -v 0.1.0-$(uname -m) \
