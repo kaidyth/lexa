@@ -14,30 +14,14 @@ steps:
       - make
       - mkdir -p dist
       - cp lexa dist/lexa-$(uname -m)
-  - name: pre_package
-    depends_on:
-      - build
-    image: charlesportwoodii/ubuntu:20.04-build
-    commands:
-        - mkdir -p package
-        - mkdir -p package/etc/systemd/system
-        - mkdir -p package/etc/lexa
-        - mkdir -p package/usr/local/bin
-        - cp lexa package/usr/local/bin/lexa
-        - cp lexa.service package/etc/systemd/system/lexa.service
-        - ls -laht
   - name: package_debian
-    depends_on:
-      - pre_package
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-      - fpm -s dir -t deb -n lexa -v ${DRONE_TAG}-$(uname -m) -C $(pwd)/package -p $(pwd)/dist/lexa-${DRONE_TAG}-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz
+      - make fpm_debian
   - name: package_alpine
-    depends_on:
-      - pre_package
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -s dir -t apk -n lexa -v ${DRONE_TAG}-$(uname -m) -C $(pwd)/package -p $(pwd)/dist/lexa-${DRONE_TAG}-$(uname -m).apk -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force
+      - make fpm_alpine
   - name: github-publish
     image: plugins/github-release
     depends_on:
@@ -52,6 +36,7 @@ steps:
       files:
         - dist/*
       title: ${DRONE_TAG}
+
 ---
 kind: pipeline
 type: docker
@@ -68,30 +53,14 @@ steps:
       - make
       - mkdir -p dist
       - cp lexa dist/lexa-$(uname -m)
-  - name: pre_package
-    depends_on:
-      - build
-    image: charlesportwoodii/ubuntu:20.04-build
-    commands:
-        - mkdir -p package
-        - mkdir -p package/etc/systemd/system
-        - mkdir -p package/etc/lexa
-        - mkdir -p package/usr/local/bin
-        - cp lexa package/usr/local/bin/lexa
-        - cp lexa.service package/etc/systemd/system/lexa.service
-        - ls -laht
   - name: package_debian
-    depends_on:
-      - pre_package
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-      - fpm -s dir -t deb -n lexa -v ${DRONE_TAG}-$(uname -m) -C $(pwd)/package -p $(pwd)/dist/lexa-${DRONE_TAG}-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz
+      - make fpm_debian
   - name: package_alpine
-    depends_on:
-      - pre_package
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -s dir -t apk -n lexa -v ${DRONE_TAG}-$(uname -m) -C $(pwd)/package -p $(pwd)/dist/lexa-${DRONE_TAG}-$(uname -m).apk -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force
+      - make fpm_alpine
   - name: github-publish
     image: plugins/github-release
     depends_on:
