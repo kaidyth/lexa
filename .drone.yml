@@ -49,9 +49,9 @@ steps:
       api_key:
         from_secret: GITHUB_API_KEY
       files:
-        - lexa-${DRONE_TAG}-$(uname -m).apk
-        - lexa-${DRONE_TAG}-$(uname -m).deb
-        - lexa-$(uname -m)
+        - $(pwd)/lexa-${DRONE_TAG}-$(uname -m).apk
+        - $(pwd)/lexa-${DRONE_TAG}-$(uname -m).deb
+        - $(pwd)/lexa-$(uname -m)
       title: ${DRONE_TAG}
       checksum:
         - sha256
@@ -107,9 +107,9 @@ steps:
       api_key:
         from_secret: GITHUB_API_KEY
       files:
-        - lexa-${DRONE_TAG}-$(uname -m).apk
-        - lexa-${DRONE_TAG}-$(uname -m).deb
-        - lexa-$(uname -m)
+        - $(pwd)/lexa-${DRONE_TAG}-$(uname -m).apk
+        - $(pwd)/lexa-${DRONE_TAG}-$(uname -m).deb
+        - $(pwd)/lexa-$(uname -m)
       title: ${DRONE_TAG}
       checksum:
         - sha256
