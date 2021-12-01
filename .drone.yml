@@ -31,7 +31,7 @@ steps:
       - dpkg-deb -c lexa-0.1.0-$(uname -m).deb
   - name: package_alpine
     depends_on:
-      - build
+      - pre_package
     image: charlesportwoodii/alpine:3.14-build
     commands:
       - fpm -s dir -t apk -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force
@@ -69,7 +69,7 @@ steps:
       - dpkg-deb -c lexa-0.1.0-$(uname -m).deb
   - name: package_alpine
     depends_on:
-      - build
+      - pre_package
     image: charlesportwoodii/alpine:3.14-build
     commands:
       - fpm -s dir -t apk -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force
