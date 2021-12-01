@@ -6,10 +6,6 @@ name: build-amd64
 platform:
   arch: amd64
 
-environment:
-  DRONE_TAG: 0.1.0
-  RELEASE_VERSION: 1
-
 steps:
   - name: build
     image: golang:1.17
@@ -24,9 +20,9 @@ steps:
       - fpm -dir \
         -t deb \
         -n lexa \
-        -v ${DRONE_TAG}-${RELEASE_VERSION}-$(uname -m) \
+        -v 0.1.0-$(uname -m) \
         -C ./ \
-        -p lexa-$(DRONE_TAG)-${RELEASE_VERSION}-$(uname -m).deb \
+        -p lexa-0.1.0-$(uname -m).deb \
         -m "charlesportwoodii@erianna.com" \
         --license "proprietary" \
         --url "https://github.com/kaidyth/lexa" \
@@ -45,9 +41,9 @@ steps:
       - fpm -dir \
         -t apk \
         -n lexa \
-        -v ${DRONE_TAG}-${RELEASE_VERSION}-$(uname -m) \
+        -v 0.1.0-$(uname -m) \
         -C ./ \
-        -p lexa-$(DRONE_TAG)-${RELEASE_VERSION}-$(uname -m).deb \
+        -p lexa-0.1.0-$(uname -m).deb \
         -m "charlesportwoodii@erianna.com" \
         --license "proprietary" \
         --url "https://github.com/kaidyth/lexa" \
@@ -77,9 +73,9 @@ steps:
       - fpm -dir \
         -t deb \
         -n lexa \
-        -v ${DRONE_TAG}-${RELEASE_VERSION}-$(uname -m) \
+        -v 0.1.0-$(uname -m) \
         -C ./ \
-        -p lexa-$(DRONE_TAG)-${RELEASE_VERSION}-$(uname -m).deb \
+        -p lexa-0.1.0-$(uname -m).deb \
         -m "charlesportwoodii@erianna.com" \
         --license "proprietary" \
         --url "https://github.com/kaidyth/lexa" \
@@ -98,9 +94,9 @@ steps:
       - fpm -dir \
         -t apk \
         -n lexa \
-        -v ${DRONE_TAG}-${RELEASE_VERSION}-$(uname -m) \
+        -v 0.1.0-$(uname -m) \
         -C ./ \
-        -p lexa-$(DRONE_TAG)-${RELEASE_VERSION}-$(uname -m).deb \
+        -p lexa-0.1.0-$(uname -m).deb \
         -m "charlesportwoodii@erianna.com" \
         --license "proprietary" \
         --url "https://github.com/kaidyth/lexa" \
