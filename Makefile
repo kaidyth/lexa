@@ -8,14 +8,19 @@ DRONE_TAG?=
 help:	## Lists all available commands and a brief description.
 	@grep -E '^[a-zA-Z/_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-
 .DEFAULT_GOAL := default
 
 default: ## Builds Lexa
 	go build -ldflags="-X 'github.com/kaidyth/lexa/command.version=\"$(GIT_VERSION)\"' -X 'github.com/kaidyth/lexa/command.architecture=\"$(shell uname)/$(shell arch)\"'" \
 
+clean: ## Cleans up directories
+	rm lexa
+	rm -rf package
+	rm -rf dist
+
 fpm_debian: ## Creates Debian Package
 	mkdir -p package
+	mkdir -p dist
 	mkdir -p package/etc/systemd/system
 	mkdir -p package/etc/lexa
 	mkdir -p package/usr/local/bin
@@ -41,7 +46,9 @@ fpm_debian: ## Creates Debian Package
 		--no-deb-auto-config-files \
 		--deb-compression=gz
 
-fpm_alpine: pre_package ## Creates an Alpine Package
+fpm_alpine: ## Creates an Alpine Package
+	mkdir -p package
+	mkdir -p dist
 	mkdir -p package/etc/lexa
 	mkdir -p package/usr/local/bin
 
