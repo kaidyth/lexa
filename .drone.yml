@@ -12,18 +12,29 @@ steps:
     commands:
       - go mod vendor
       - make
-  - name: package_debian
+  - name: pre_package
     depends_on:
       - build
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-      - fpm -s dir -t deb -n lexa -v 0.1.0-$(uname -m) -C ./ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz
+        - mkdir -p package/etc/systemd/system
+        - mkdir -p package/etc/lexa
+        - mkdir -p package/usr/local/bin
+        - cp lexa package/usr/local/bin/lexa
+        - cp lexa.service package/etc/systemd/system/lexa.service
+  - name: package_debian
+    depends_on:
+      - pre_package
+    image: charlesportwoodii/ubuntu:20.04-build
+    commands:
+      - fpm -s dir -t deb -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz
+      - dpkg-deb -c lexa-0.1.0-$(uname -m).deb
   - name: package_alpine
     depends_on:
       - build
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -s dir -t apk -n lexa -v 0.1.0-$(uname -m) -C ./ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force
+      - fpm -s dir -t apk -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force
 
 ---
 kind: pipeline
@@ -39,15 +50,26 @@ steps:
     commands:
       - go mod vendor
       - make
-  - name: package_debian
+  - name: pre_package
     depends_on:
       - build
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-      - fpm -s dir -t deb -n lexa -v 0.1.0-$(uname -m) -C ./ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz
+        - mkdir -p package/etc/systemd/system
+        - mkdir -p package/etc/lexa
+        - mkdir -p package/usr/local/bin
+        - cp lexa package/usr/local/bin/lexa
+        - cp lexa.service package/etc/systemd/system/lexa.service
+  - name: package_debian
+    depends_on:
+      - pre_package
+    image: charlesportwoodii/ubuntu:20.04-build
+    commands:
+      - fpm -s dir -t deb -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz
+      - dpkg-deb -c lexa-0.1.0-$(uname -m).deb
   - name: package_alpine
     depends_on:
       - build
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -s dir -t apk -n lexa -v 0.1.0-$(uname -m) -C ./ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force
+      - fpm -s dir -t apk -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force
