@@ -1,0 +1,29 @@
+---
+kind: pipeline
+type: docker
+name: build-amd64
+
+platform:
+  arch: amd64
+
+steps:
+  - name: build
+    image: golang:1.17
+    commands:
+      - go mod vendor
+      - make
+
+---
+kind: pipeline
+type: docker
+name: build-arm64
+
+platform:
+  arch: arm64
+
+steps:
+  - name: build
+    image: golang:1.17
+    commands:
+      - go mod vendor
+      - make
