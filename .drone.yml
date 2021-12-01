@@ -52,9 +52,6 @@ steps:
       files:
         - dist/*
       title: ${DRONE_TAG}
-      checksum:
-        - sha256
-        - sha512
 ---
 kind: pipeline
 type: docker
@@ -109,6 +106,3 @@ steps:
       files:
         - dist/*
       title: ${DRONE_TAG}
-      checksum:
-        - sha256
-        - sha512
