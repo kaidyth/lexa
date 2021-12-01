@@ -17,7 +17,7 @@ steps:
       - build
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-        - mkdir -p /drone/scratch
+        - mkdir -p ./scratch/
         - mkdir -p package/etc/systemd/system
         - mkdir -p package/etc/lexa
         - mkdir -p package/usr/local/bin
@@ -28,13 +28,13 @@ steps:
       - pre_package
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-      - fpm -s dir -t deb -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz --workdir /drone/scratch
+      - fpm -s dir -t deb -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz --workdir ./scratch/
   - name: package_alpine
     depends_on:
       - pre_package
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -s dir -t apk -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir /drone/scratch
+      - fpm -s dir -t apk -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir ./scratch/
 
 ---
 kind: pipeline
@@ -55,7 +55,7 @@ steps:
       - build
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-        - mkdir -p /drone/scratch
+        - mkdir -p ./scratch/
         - mkdir -p package/etc/systemd/system
         - mkdir -p package/etc/lexa
         - mkdir -p package/usr/local/bin
@@ -66,10 +66,10 @@ steps:
       - pre_package
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
-      - fpm -s dir -t deb -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz --workdir /drone/scratch
+      - fpm -s dir -t deb -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz --workdir ./scratch/
   - name: package_alpine
     depends_on:
       - pre_package
     image: charlesportwoodii/alpine:3.14-build
     commands:
-      - fpm -s dir -t apk -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir /drone/scratch
+      - fpm -s dir -t apk -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --force --workdir ./scratch/
