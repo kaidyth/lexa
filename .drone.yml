@@ -16,10 +16,14 @@ steps:
       - cp lexa dist/lexa-$(uname -m)
   - name: package_debian
     image: charlesportwoodii/ubuntu:20.04-build
+    depends_on:
+      - build
     commands:
       - make fpm_debian
   - name: package_alpine
     image: charlesportwoodii/alpine:3.14-build
+    depends_on:
+      - build
     commands:
       - make fpm_alpine
   - name: github-publish
@@ -55,10 +59,14 @@ steps:
       - cp lexa dist/lexa-$(uname -m)
   - name: package_debian
     image: charlesportwoodii/ubuntu:20.04-build
+    depends_on:
+      - build
     commands:
       - make fpm_debian
   - name: package_alpine
     image: charlesportwoodii/alpine:3.14-build
+    depends_on:
+      - build
     commands:
       - make fpm_alpine
   - name: github-publish
