@@ -6,12 +6,53 @@ name: build-amd64
 platform:
   arch: amd64
 
+environment:
+  RELEASE_VERSION: 1
+
 steps:
   - name: build
     image: golang:1.17
     commands:
       - go mod vendor
       - make
+  - name: package_debian
+    depends_on:
+      - build
+    image: charlesportwoodii/ubuntu:20.04-build
+    commands:
+      - fpm -dir \
+        -t deb \
+        -n lexa \
+        -v ${DRONE_TAG}-${RELEASE_VERSION}-$(uname -m) \
+        -C ./ \
+        -p lexa-$(DRONE_TAG)-${RELEASE_VERSION}-$(uname -m).deb \
+        -m "charlesportwoodii@erianna.com" \
+        --license "proprietary" \
+        --url "https://github.com/kaidyth/lexa" \
+        --description "Lexa - instance and service discovery for LXD containers" \
+        --vendor "Kaidyth" \
+        --deb-systemd-restart-after-upgrade \
+        --template-scripts \
+        --force \
+        --no-deb-auto-config-files \
+        --deb-compression=gz
+  - name: package_alpine
+    depends_on:
+      - build
+    image: charlesportwoodii/alpine:3.14-build
+    commands:
+      - fpm -dir \
+        -t apk \
+        -n lexa \
+        -v ${DRONE_TAG}-${RELEASE_VERSION}-$(uname -m) \
+        -C ./ \
+        -p lexa-$(DRONE_TAG)-${RELEASE_VERSION}-$(uname -m).deb \
+        -m "charlesportwoodii@erianna.com" \
+        --license "proprietary" \
+        --url "https://github.com/kaidyth/lexa" \
+        --description "Lexa - instance and service discovery for LXD containers" \
+        --vendor "Kaidyth" \
+        --force
 
 ---
 kind: pipeline
@@ -27,3 +68,41 @@ steps:
     commands:
       - go mod vendor
       - make
+  - name: package_debian
+    depends_on:
+      - build
+    image: charlesportwoodii/ubuntu:20.04-build
+    commands:
+      - fpm -dir \
+        -t deb \
+        -n lexa \
+        -v ${DRONE_TAG}-${RELEASE_VERSION}-$(uname -m) \
+        -C ./ \
+        -p lexa-$(DRONE_TAG)-${RELEASE_VERSION}-$(uname -m).deb \
+        -m "charlesportwoodii@erianna.com" \
+        --license "proprietary" \
+        --url "https://github.com/kaidyth/lexa" \
+        --description "Lexa - instance and service discovery for LXD containers" \
+        --vendor "Kaidyth" \
+        --deb-systemd-restart-after-upgrade \
+        --template-scripts \
+        --force \
+        --no-deb-auto-config-files \
+        --deb-compression=gz
+  - name: package_alpine
+    depends_on:
+      - build
+    image: charlesportwoodii/alpine:3.14-build
+    commands:
+      - fpm -dir \
+        -t apk \
+        -n lexa \
+        -v ${DRONE_TAG}-${RELEASE_VERSION}-$(uname -m) \
+        -C ./ \
+        -p lexa-$(DRONE_TAG)-${RELEASE_VERSION}-$(uname -m).deb \
+        -m "charlesportwoodii@erianna.com" \
+        --license "proprietary" \
+        --url "https://github.com/kaidyth/lexa" \
+        --description "Lexa - instance and service discovery for LXD containers" \
+        --vendor "Kaidyth" \
+        --force
