@@ -28,7 +28,6 @@ steps:
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
       - fpm -s dir -t deb -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz
-      - dpkg-deb -c lexa-0.1.0-$(uname -m).deb
   - name: package_alpine
     depends_on:
       - pre_package
@@ -66,7 +65,6 @@ steps:
     image: charlesportwoodii/ubuntu:20.04-build
     commands:
       - fpm -s dir -t deb -n lexa -v 0.1.0-$(uname -m) -C ./package/ -p lexa-0.1.0-$(uname -m).deb -m "charlesportwoodii@erianna.com" --license "proprietary" --url "https://github.com/kaidyth/lexa" --description "Lexa - instance and service discovery for LXD containers" --vendor "Kaidyth" --deb-systemd-restart-after-upgrade --template-scripts --force --no-deb-auto-config-files --deb-compression=gz
-      - dpkg-deb -c lexa-0.1.0-$(uname -m).deb
   - name: package_alpine
     depends_on:
       - pre_package
