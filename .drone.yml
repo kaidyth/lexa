@@ -7,6 +7,7 @@ platform:
   arch: amd64
 
 environment:
+  DRONE_TAG: 0.1.0
   RELEASE_VERSION: 1
 
 steps:
