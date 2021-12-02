@@ -43,6 +43,8 @@ fpm_debian: ## Creates Debian Package
 		--deb-systemd-restart-after-upgrade \
 		--template-scripts \
 		--force \
+		--after-install $(shell pwd)/.debian/postinstall-pak \
+		--before-remove $(shell pwd)/.debian/preremove-pak \
 		--no-deb-auto-config-files \
 		--deb-compression=gz
 
@@ -51,6 +53,9 @@ fpm_alpine: ## Creates an Alpine Package
 	mkdir -p dist
 	mkdir -p package/etc/lexa
 	mkdir -p package/usr/local/bin
+	mkdir -p package/usr/local/etc/init.d
+
+	cp .alpine/*.rc package/usr/local/etc/init.d/
 
 	fpm -s dir \
 		-t apk \

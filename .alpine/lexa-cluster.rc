@@ -1,0 +1,25 @@
+#!/sbin/openrc-run
+
+description="Lexa - Cluster"
+name=lexa-cluster
+cfgfile="/etc/lexa/lexa.hcl"
+command="/usr/local/bin/lexa cluster"
+
+depend() {
+    need net
+    need localmount
+    use dns logger
+}
+
+start() {
+    $command --config $cfgfile
+}
+
+reload() {
+    /bin/kill -QUIT $pid
+    $command --config $cfgfile
+}
+
+stop() {
+    /bin/kill -QUIT $pid
+}

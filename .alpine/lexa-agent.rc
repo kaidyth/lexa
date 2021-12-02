@@ -1,0 +1,25 @@
+#!/sbin/openrc-run
+
+description="Lexa - Agent"
+name=lexa-agent
+cfgfile="/etc/lexa/lexa.hcl"
+command="/usr/local/bin/lexa agent"
+
+depend() {
+    need net
+    need localmount
+    use dns logger
+}
+
+start() {
+    $command --config $cfgfile
+}
+
+reload() {
+    /bin/kill -QUIT $pid
+    $command --config $cfgfile
+}
+
+stop() {
+    /bin/kill -QUIT $pid
+}

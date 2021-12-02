@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set +e
+
+if id "lexa" &>/dev/null; then
+    echo 'Lexa user is already added.'
+else
+    useradd -UMrs /bin/false lexa
+fi
