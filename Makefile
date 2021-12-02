@@ -44,7 +44,7 @@ fpm_debian: ## Creates Debian Package
 		--template-scripts \
 		--force \
 		--after-install "$(shell pwd)/.debian/postinstall-pak" \
-		--before-remove "$(shell pwd)/.debian/preremove-pak" \
+		--after-remove "$(shell pwd)/.debian/postremove-pak" \
 		--no-deb-auto-config-files \
 		--deb-compression=gz
 
