@@ -46,7 +46,7 @@ fpm_debian: ## Creates Debian Package
 		--after-install "$(shell pwd)/.debian/postinstall-pak" \
 		--after-remove "$(shell pwd)/.debian/postremove-pak" \
 		--no-deb-auto-config-files \
-		--deb-compression=gz
+		--deb-compression=zstd
 
 fpm_alpine: ## Creates an Alpine Package
 	mkdir -p package
