@@ -32,7 +32,7 @@ fpm_debian: ## Creates Debian Package
 	fpm -s dir \
 		-t deb \
 		-n lexa \
-		-v $(DRONE_TAG)-$(shell uname -m) \
+		-v $(DRONE_TAG) \
 		-C $(shell pwd)/package \
 		-p $(shell pwd)/dist/lexa-$(DRONE_TAG)-$(shell uname -m).deb \
 		-m "charlesportwoodii@erianna.com" \
@@ -55,7 +55,7 @@ fpm_alpine: ## Creates an Alpine Package
 	fpm -s dir \
 		-t apk \
 		-n lexa \
-		-v $(DRONE_TAG)-$(shell uname -m) \
+		-v $(DRONE_TAG) \
 		-C $(shell pwd)/package \
 		-p $(shell pwd)/dist/lexa-$(DRONE_TAG)-$(shell uname -m).apk \
 		-m "charlesportwoodii@erianna.com" \
