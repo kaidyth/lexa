@@ -29,16 +29,21 @@ type ResolverServiceData struct {
 // NewResolver creates a new DNS resolver
 func NewResolver(ctx context.Context) *dns.Server {
 	k := ctx.Value("koanf").(*koanf.Koanf)
-	port := k.String("server.dns.port")
-	bind := k.String("server.dns.bind")
 	suffix := k.String("server.suffix")
+
+	ip, port, err := shared.GetNetworkBindings(ctx, "server.dns")
+	if err != nil {
+		log.Fatal("Unable to aquire bind")
+	}
+
+	listenAddress := ip.String() + ":" + fmt.Sprintf("%d", port)
 
 	dns.HandleFunc(suffix+".", func(w dns.ResponseWriter, r *dns.Msg) {
 		handleRequest(w, r, ctx)
 	})
 
 	server := &dns.Server{
-		Addr: bind + ":" + port,
+		Addr: listenAddress,
 		Net:  "udp",
 	}
 

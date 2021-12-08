@@ -12,6 +12,7 @@ require (
 	github.com/forestgiant/sliceutil v0.0.0-20160425183142-94783f95db6c // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/gorilla/mux v1.8.0
+	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/juju/webbrowser v1.0.0 // indirect
 	github.com/kavu/go_reuseport v1.5.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect

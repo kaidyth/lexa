@@ -315,6 +315,33 @@ agent {
 }
 ```
 
+### Dynamic Interface Binding
+All `bind` configuration keys support dynamic runtime configurations via [`hashicorp/go-sockaddr/template`](https://pkg.go.dev/github.com/hashicorp/go-sockaddr/template#section-readme), and will use the first address returned by the package as the bind ip address.
+
+For instance where your container IP address may change but you need to bind it to a specific IP, the following may be used, as an example:
+
+```
+agent {
+  p2p {
+    bind = "{{ GetInterfaceIP \"enp0s2\" }}"
+  }
+}
+```
+
+When using methods that return string objects instead of single IP's, use `attr "address"` to filter just the address.
+
+As an example:
+
+```
+server {
+  dns {
+    bind = "{{ GetPrivateInterfaces | attr \"address\" }}"
+  }
+}
+```
+
+Dynamic address binding is supported on all `bind` properties, and supports all features of the template package, however you must filter by only the address attribute to get a valid result.
+
 ## Commands
 
 ### Server

@@ -71,9 +71,12 @@ func configureRouter(context context.Context) *negroni.Negroni {
 // NewRouter defines a new router instance
 func NewRouter(ctx context.Context) *http.Server {
 	router := configureRouter(ctx)
-	k := ctx.Value("koanf").(*koanf.Koanf)
-	port := k.String("server.tls.port")
-	bind := k.String("server.tls.bind")
+	ip, port, err := shared.GetNetworkBindings(ctx, "server.tls")
+	if err != nil {
+		log.Fatal("Unable to aquire bind")
+	}
+
+	listenAddress := ip.String() + ":" + fmt.Sprintf("%d", port)
 
 	// Force a modern TLS configuration
 	cfg := &tls.Config{
@@ -89,7 +92,7 @@ func NewRouter(ctx context.Context) *http.Server {
 	}
 
 	server := &http.Server{
-		Addr:         bind + ":" + port,
+		Addr:         listenAddress,
 		TLSConfig:    cfg,
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 		Handler:      router,

@@ -15,19 +15,19 @@ import (
 	"github.com/knadh/koanf"
 	"github.com/perlin-network/noise"
 	"github.com/perlin-network/noise/kademlia"
-	"inet.af/netaddr"
 )
 
 func NewNode(ctx context.Context) *noise.Node {
-	k := ctx.Value("koanf").(*koanf.Koanf)
-	bind := k.String("server.p2p.bind")
-	ip, _ := netaddr.ParseIP(bind)
+	ip, port, err := shared.GetNetworkBindings(ctx, "server.p2p")
+	if err != nil {
+		log.Fatal("Unable to aquire bind")
+	}
+
 	bindAddr := ip.IPAddr().IP.To4()
-	port := uint16(k.Int("server.p2p.port"))
 	listenAddress := ip.String() + ":" + fmt.Sprintf("%d", port)
 	log.Info("Listening on: " + listenAddress)
 
-	if bind == "" || ip.IsLoopback() || ip.IsMulticast() || ip.String() == "0.0.0.0" {
+	if ip.IsLoopback() || ip.IsMulticast() || ip.String() == "0.0.0.0" {
 		log.Fatal(fmt.Sprintf("Unable to bind to (%s). Please use a non-local, non-multicast, and non 0.0.0.0 IP", ip.String()))
 	}
 
