@@ -72,7 +72,7 @@ impl Handler {
             let nn = match n
                 .as_str()
                 .char_indices()
-                .skip((self.lxd.suffix.len() + 2))
+                .skip(self.lxd.suffix.len() + 2)
                 .next()
             {
                 Some((pos, _)) => &n[pos..],

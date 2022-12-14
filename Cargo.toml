@@ -45,9 +45,10 @@ extended-description = """Lexa provides instance and service discovery for LXD c
 depends = "$auto"
 section = "utility"
 priority = "optional"
-revision = "__REVISION__"
+revision = "___REVISION___"
 assets = [
     ["target/release/lexa", "usr/local/bin/", "755"],
     ["README.md", "usr/share/doc/lexa/README", "644"],
     [".systemd/lexa.service", "etc/systemd/system/lexa.service", "644"],
 ]
+maintainer-scripts = ".debian"
