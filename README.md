@@ -6,7 +6,25 @@ Lexa can be used as a stand-alone service to identify what LXD containers are ru
 
 ## Building
 
-Install Golang 1.16+ then run the included `Makefile` to generate your own, or use one of the attached releases.
+Lexa is built using `Rust`, and can be built by running `cargo build`
+
+## 0.2.0
+
+Lexa 0.2 is a complete rewrite of Lexa in rust to take advantage of enhanced performance and memory related issues with the Go variant. While identical in functionality, there are some minor configuration changes from the 0.1 variant, chiefly among the configuration.
+
+The main configuration difference is that communication to the LXD client is now done over HTTP, rather than the unix-socket. Consequently, to connect Lexa to LXD you'll need to expose the TLS API, and add a trusted certificate.
+
+The necessary configuration for LXD is as follows:
+
+```bash
+# Expose the TLS API
+$ lxc config set core.https_address [::]:8443
+# Generate a certificate
+$ openssl ecparam -genkey -name prime256v1 -out lxd.key
+$ openssl req -x509 -new -SHA384 -nodes -key lxd.key -days 36500 -out lxd.crt
+# Add the trust certificate to LXD
+$  lxc config trust add lxd.crt
+```
 
 ## Usage
 

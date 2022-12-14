@@ -1,6 +1,4 @@
-.vscode
-.air.toml
-*.hcl
-/vendor
-/tmp
-lexa
+/target
+lexa.hcl
+*.key
+*.crt

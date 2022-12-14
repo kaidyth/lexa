@@ -1,0 +1,53 @@
+[package]
+name = "lexa"
+authors = ["Charles R. Portwood II <charlesportwoodii@erianna.com>"]
+description = "Instance and service discovery for LXD containers"
+repository = "https://github.com/kaidyth/lexa"
+version = "0.2.0"
+edition = "2021"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "^1.11", features = ["full"] }
+clap = { version = "^4.0", features = ["derive", "env", "wrap_help"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["raw_value"] }
+hcl-rs = { version = "^0.8" }
+async-stream = { version = "^0.3" }
+async-trait = { version = "^0.1" }
+reqwest = { version = "^0.11", default-features=false, features = ["json", "rustls-tls", "brotli", "gzip", "stream", "blocking"] }
+tracing = { version = "^0.1" }
+tracing-subscriber = { version = "^0.3" }
+tracing-appender = { version = "^0.2" }
+anyhow = { version = "^1.0" }
+faccess = { version = "^0.2" }
+built = { version = "^0.5", features = ["git2", "chrono", "semver"]  }
+trust-dns-server = { version = "^0.22", features = ["dns-over-https-rustls", "dns-over-quic", "dns-over-rustls"] }
+thiserror = { version = "^1.0" }
+rustls = { version = "^0.20" }
+rustls-pemfile = { version = "^1.0" }
+moka = { version = "^0.9", features = ["future"] }
+futures-util = { version = "^0.3" }
+async-once-cell = { version = "^0.4" }
+glob = { version = "^0.3" }
+dns-lookup = { version = "^1.0" }
+
+
+[build-dependencies]
+built = { version = "^0.5", features = ["git2", "chrono", "semver"]  }
+
+[package.metadata.deb]
+maintainer = "Charles R. Portwood II <charlesportwoodii@erianna.com>"
+copyright = "2022 - Present, Charles R. Portwood II <charlesportwoodii@erianna.com>"
+extended-description = """Lexa provides instance and service discovery for LXD containers."""
+depends = "$auto"
+section = "utility"
+priority = "optional"
+revision = "__REVISION__"
+assets = [
+    ["target/release/lexa", "usr/local/bin/", "755"],
+    ["README.md", "usr/share/doc/lexa/README", "644"],
+    [".systemd/lexa.service", "etc/systemd/system/lexa.service", "644"],
+]
