@@ -23,10 +23,10 @@ pub struct Config {
         required = false,
         default_value = "lexa.hcl"
     )]
-    pub config_file: String,
+    pub config: String,
 
     #[clap(skip)]
-    pub config: ApplicationConfig,
+    pub config_data: ApplicationConfig,
 }
 
 impl Config {
@@ -34,8 +34,8 @@ impl Config {
         match self.get_config_file() {
             Ok(hcl) => {
                 let config = Config {
-                    config_file: self.config_file.clone(),
-                    config: hcl,
+                    config: self.config.clone(),
+                    config_data: hcl,
                 };
                 config.serve_internal(cfg).await;
             }
@@ -48,8 +48,8 @@ impl Config {
 
     async fn serve_internal<'a>(&'a self, _cfg: &StateConfig) {
         // Setup the logger
-        let level = self.config.get_tracing_log_level();
-        let out = &self.config.log.out;
+        let level = self.config_data.get_tracing_log_level();
+        let out = &self.config_data.log.out;
 
         let subscriber: SubscriberBuilder = tracing_subscriber::fmt();
         let non_blocking: NonBlocking;
@@ -85,7 +85,7 @@ impl Config {
         let rocket = tokio::spawn(async move {});
         tasks.push(rocket);
 
-        let server = match dns::Server::init(self.config.dns.clone(), self.config.lxd.clone()).await
+        let server = match dns::Server::init(self.config_data.dns.clone(), self.config_data.lxd.clone()).await
         {
             Ok(server) => server,
             Err(error) => {
@@ -111,7 +111,7 @@ impl Config {
     }
 
     fn get_config_file<'a>(&'a self) -> std::result::Result<ApplicationConfig, anyhow::Error> {
-        if let Ok(config) = std::fs::read_to_string(&self.config_file) {
+        if let Ok(config) = std::fs::read_to_string(&self.config) {
             if let Ok(hcl) = hcl::from_str::<Value>(&config.as_str()) {
                 let app_config: Result<ApplicationConfig, serde_json::Error> =
                     serde_json::from_value(hcl.get("server").unwrap().to_owned());
