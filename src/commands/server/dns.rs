@@ -6,15 +6,17 @@ use rustls::{Certificate, PrivateKey};
 use std::io::BufReader;
 use std::time::Duration;
 use tokio::net::{TcpListener, UdpSocket};
-use trust_dns_server::resolver::Name;
-use trust_dns_server::ServerFuture;
 use trust_dns_server::{
+    ServerFuture,
+    resolver::Name,
     authority::MessageResponseBuilder,
     client::rr::LowerName,
     proto::op::{Header, MessageType, OpCode, ResponseCode},
     server::{Request, RequestHandler, ResponseHandler, ResponseInfo},
 };
 
+use rand::thread_rng;
+use rand::seq::SliceRandom;
 use super::config::{ApplicationConfigDNS, ApplicationConfigHostPort, ApplicationConfigLXD};
 
 #[derive(thiserror::Error, Debug)]
@@ -86,7 +88,9 @@ impl Handler {
             .get_rdata_for_query(request.query().name().into(), request.query().query_type())
             .await
         {
-            Ok(ips) => {
+            Ok(mut ips) => {
+                // Randomize the DNS response order for additional load balancing
+                ips.shuffle(&mut thread_rng());
                 let response = builder.build(header, ips.iter(), &[], &[], &[]);
                 return Ok(responder.send_response(response).await?);
             }
