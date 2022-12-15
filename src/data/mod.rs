@@ -28,7 +28,7 @@ pub(crate) async fn get_containers(
             match client
                 .get(format!(
                     "https://{}:{}/1.0/containers?recursion=2",
-                    "local.lexa.kaidyth.com", config.bind.port
+                    config.get_fqdn(), config.bind.port
                 ))
                 .send()
                 .await

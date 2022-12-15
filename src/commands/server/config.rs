@@ -206,6 +206,14 @@ impl ApplicationConfigLXD {
         }
     }
 
+    /// Returns a functional FQDN because RusTLS requires a FQDN instead of an IP connection
+    pub fn get_fqdn(&self) -> String {
+        match IpAddr::from_str(&self.bind.host) {
+            Ok(_) => String::from("local.lexa.kaidyth.com"),
+            Err(_) => String::from(&self.bind.host)
+        }
+    }
+
     pub fn get_client(&self) -> Result<reqwest::Client, anyhow::Error> {
         let cert = match self.get_certificate() {
             Ok(cert) => cert,
