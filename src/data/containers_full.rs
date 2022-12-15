@@ -14,7 +14,7 @@ pub struct Root {
     #[serde(rename = "error_code")]
     pub error_code: i64,
     pub error: String,
-    pub metadata: Option<Vec<Metadaum>>,
+    pub metadata: Vec<Metadaum>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -54,7 +54,7 @@ pub struct State {
     pub status_code: i64,
     pub disk: Disk,
     pub memory: Memory,
-    pub network: HashMap<String, Network>,
+    pub network: Option<HashMap<String, Network>>,
     pub pid: i64,
     pub processes: i64,
     pub cpu: Cpu,

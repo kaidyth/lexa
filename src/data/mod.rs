@@ -50,28 +50,26 @@ pub(crate) async fn get_containers(
                                     .await;
 
                                 let mut instances: Vec<String> = Vec::<String>::new();
-                                match data.clone().metadata {
-                                    Some(metadata) => for instance in metadata {
-                                        instances.push(instance.name.clone());
-                                        cache
-                                            .insert(
-                                                instance.name.clone(),
-                                                serde_json::to_string(&instance).unwrap(),
-                                            )
-                                            .await;
-
+                                for instance in data.metadata.clone() {
+                                    instances.push(instance.name.clone());
                                     cache
                                         .insert(
-                                            "instances".to_string(),
-                                            serde_json::to_string(&instances).unwrap(),
+                                            instance.name.clone(),
+                                            serde_json::to_string(&instance).unwrap(),
                                         )
                                         .await;
-                                    },
-                                    None => {}
-                                };
+
+
+                                cache
+                                    .insert(
+                                        "instances".to_string(),
+                                        serde_json::to_string(&instances).unwrap(),
+                                    )
+                                    .await;
+                                }
 
                                 return Ok(data);
-                            }
+                            },
                             Err(error) => {
                                 tracing::error!("{}", error.to_string());
                                 return Err(anyhow!("Unable to connect to LXD"));

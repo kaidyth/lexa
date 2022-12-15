@@ -532,7 +532,9 @@ impl Instance {
     /// Returns all records for this element
     fn get_all_records(&self) -> HashMap<(RecordType, String), RData> {
         let mut records = HashMap::<(RecordType, String), RData>::new();
-        for (ifname, network) in &self.data.state.network {
+
+        let network = self.data.state.network.clone().unwrap();
+        for (ifname, network) in &network {
             for address in &network.addresses {
                 if address.scope != "local" {
                     match address.family {
@@ -569,7 +571,8 @@ impl Instance {
     /// Returns the interface names available on the instance
     pub fn get_interfaces(&self) -> Vec<String> {
         let mut interfaces = Vec::<String>::new();
-        for (ifname, _) in &self.data.state.network {
+        let network = self.data.state.network.clone().unwrap();
+        for (ifname, _) in &network {
             interfaces.push(ifname.clone().to_string());
         }
 
