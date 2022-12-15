@@ -33,44 +33,54 @@ pub(crate) async fn get_containers(
                 .send()
                 .await
             {
-                Ok(response) => match response.json().await {
-                    Ok(json) => match serde_json::from_value::<containers_full::Root>(json) {
-                        Ok(data) => {
-                            tracing::debug!("Retrieved Data from API");
-                            cache
-                                .insert(
-                                    "containers_full".to_string(),
-                                    serde_json::to_string(&data.clone()).unwrap(),
-                                )
-                                .await;
+                Ok(response) => {
+                    if response.status() != reqwest::StatusCode::OK {
+                        return Err(anyhow!("LXD API returned an error."));
+                    }
 
-                            let mut instances: Vec<String> = Vec::<String>::new();
-                            for instance in data.clone().metadata {
-                                instances.push(instance.name.clone());
+                    match response.json().await {
+                        Ok(json) => match serde_json::from_value::<containers_full::Root>(json) {
+                            Ok(data) => {
+                                tracing::debug!("Retrieved Data from API");
                                 cache
                                     .insert(
-                                        instance.name.clone(),
-                                        serde_json::to_string(&instance).unwrap(),
+                                        "containers_full".to_string(),
+                                        serde_json::to_string(&data.clone()).unwrap(),
                                     )
                                     .await;
-                            }
 
-                            cache
-                                .insert(
-                                    "instances".to_string(),
-                                    serde_json::to_string(&instances).unwrap(),
-                                )
-                                .await;
-                            return Ok(data);
-                        }
+                                let mut instances: Vec<String> = Vec::<String>::new();
+                                match data.clone().metadata {
+                                    Some(metadata) => for instance in metadata {
+                                        instances.push(instance.name.clone());
+                                        cache
+                                            .insert(
+                                                instance.name.clone(),
+                                                serde_json::to_string(&instance).unwrap(),
+                                            )
+                                            .await;
+
+                                    cache
+                                        .insert(
+                                            "instances".to_string(),
+                                            serde_json::to_string(&instances).unwrap(),
+                                        )
+                                        .await;
+                                    },
+                                    None => {}
+                                };
+
+                                return Ok(data);
+                            }
+                            Err(error) => {
+                                tracing::error!("{}", error.to_string());
+                                return Err(anyhow!("Unable to connect to LXD"));
+                            }
+                        },
                         Err(error) => {
                             tracing::error!("{}", error.to_string());
-                            return Err(anyhow!("Unable to connect to LXD"));
+                            return Err(anyhow!("Could not parse LXD 1.0 Response"));
                         }
-                    },
-                    Err(error) => {
-                        tracing::error!("{}", error.to_string());
-                        return Err(anyhow!("Could not parse LXD 1.0 Response"));
                     }
                 },
                 Err(error) => {

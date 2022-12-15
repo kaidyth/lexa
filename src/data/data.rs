@@ -84,6 +84,7 @@ impl Query {
         let mut records = Vec::<Record>::new();
         let instances = self.get_instances().await?;
 
+        dbg!(instances.len());
         for i in instances {
             match self.get_query_type() {
                 // Returns an interface specific response
@@ -113,6 +114,12 @@ impl Query {
                 }
                 // Return the cluster location
                 QueryType::Cluster => {
+                    let pieces = self.get_query_pieces();
+                    let node: Option<String> = match pieces.len() {
+                        // If there are 3 components, then the first one is the node name we want to query
+                        3 => Some(pieces[0].clone()),
+                        _ => None
+                    };
                     match lookup_host(&i.data.location) {
                         Ok(ips) => match &q_type {
                             RecordType::CNAME => {
@@ -127,7 +134,15 @@ impl Query {
                                         let rdata = RData::A(ip.to_string().parse().unwrap());
                                         let mut rec =
                                             vec![Record::from_rdata(name.clone(), 3, rdata)];
-                                        records.append(&mut rec);
+
+                                        match &node {
+                                            Some(node) => {
+                                                if node == i.data.location.as_str() {
+                                                    records.append(&mut rec)
+                                                }
+                                            },
+                                            None => records.append(&mut rec)
+                                        }
                                     }
                                 }
                             }
@@ -137,7 +152,14 @@ impl Query {
                                         let rdata = RData::AAAA(ip.to_string().parse().unwrap());
                                         let mut rec =
                                             vec![Record::from_rdata(name.clone(), 3, rdata)];
-                                        records.append(&mut rec);
+                                            match &node {
+                                                Some(node) => {
+                                                    if node == i.data.location.as_str() {
+                                                        records.append(&mut rec)
+                                                    }
+                                                },
+                                                None => records.append(&mut rec)
+                                            }
                                     }
                                 }
                             }

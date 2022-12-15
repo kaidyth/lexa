@@ -14,7 +14,7 @@ pub struct Root {
     #[serde(rename = "error_code")]
     pub error_code: i64,
     pub error: String,
-    pub metadata: Vec<Metadaum>,
+    pub metadata: Option<Vec<Metadaum>>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

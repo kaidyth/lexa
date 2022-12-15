@@ -90,7 +90,8 @@ impl Handler {
                 let response = builder.build(header, ips.iter(), &[], &[], &[]);
                 return Ok(responder.send_response(response).await?);
             }
-            Err(_) => {
+            Err(error) => {
+                tracing::error!("{}", error.to_string());
                 header.set_response_code(ResponseCode::ServFail);
                 let r = builder.build(header, &[], &[], &[], &[]);
                 return Ok(responder.send_response(r).await.unwrap());
