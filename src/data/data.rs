@@ -84,14 +84,13 @@ impl Query {
         let mut records = Vec::<Record>::new();
         let instances = self.get_instances().await?;
 
-        dbg!(instances.len());
         for i in instances {
             match self.get_query_type() {
                 // Returns an interface specific response
                 QueryType::Interface => {
                     let interface_name = self.get_interface_name();
                     let mut results =
-                        i.get_records(&self.config.suffix, q_type.clone(), interface_name, false);
+                        i.get_records(&self.config.suffix, q_type.clone(), interface_name, false, None);
                     records.append(&mut results);
                 }
                 // Returns `eth0` or the first network interface provided by LXD API
@@ -110,16 +109,17 @@ impl Query {
                         q_type.clone(),
                         interface_name,
                         true,
+                        None
                     ))
                 }
                 // Return the cluster location
                 QueryType::Cluster => {
                     let pieces = self.get_query_pieces();
-                    let node: Option<String> = match pieces.len() {
-                        // If there are 3 components, then the first one is the node name we want to query
-                        3 => Some(pieces[0].clone()),
-                        _ => None
-                    };
+                    let mut node: Option<String> = None;
+                    if pieces.len() >= 3 {
+                        let fqdn = pieces[0..pieces.len()-2].join(".");
+                        node = Some(fqdn);
+                    }
                     match lookup_host(&i.data.location) {
                         Ok(ips) => match &q_type {
                             RecordType::CNAME => {
@@ -131,17 +131,33 @@ impl Query {
                             RecordType::A => {
                                 for ip in ips {
                                     if ip.is_ipv4() {
-                                        let rdata = RData::A(ip.to_string().parse().unwrap());
-                                        let mut rec =
-                                            vec![Record::from_rdata(name.clone(), 3, rdata)];
-
                                         match &node {
                                             Some(node) => {
                                                 if node == i.data.location.as_str() {
-                                                    records.append(&mut rec)
+                                                    let interface_name = {
+                                                        let interfaces = i.get_interfaces();
+                                                        if interfaces.contains(&String::from("eth0")) {
+                                                            Some(String::from("eth0"))
+                                                        } else {
+                                                            Some(String::from(interfaces[0].clone()))
+                                                        }
+                                                    };
+
+                                                    records.append(&mut i.get_records(
+                                                        &self.config.suffix,
+                                                        q_type.clone(),
+                                                        interface_name,
+                                                        true,
+                                                        Some(name.clone())
+                                                    ))
                                                 }
                                             },
-                                            None => records.append(&mut rec)
+                                            None => {
+                                                let rdata = RData::A(ip.to_string().parse().unwrap());
+                                                let mut rec =
+                                                vec![Record::from_rdata(name.clone(), 3, rdata)];
+                                                records.append(&mut rec)
+                                            }
                                         }
                                     }
                                 }
@@ -149,17 +165,34 @@ impl Query {
                             RecordType::AAAA => {
                                 for ip in ips {
                                     if ip.is_ipv6() {
-                                        let rdata = RData::AAAA(ip.to_string().parse().unwrap());
-                                        let mut rec =
-                                            vec![Record::from_rdata(name.clone(), 3, rdata)];
-                                            match &node {
-                                                Some(node) => {
-                                                    if node == i.data.location.as_str() {
-                                                        records.append(&mut rec)
-                                                    }
-                                                },
-                                                None => records.append(&mut rec)
+                                        match &node {
+                                            Some(node) => {
+                                                if node == i.data.location.as_str() {
+                                                    let interface_name = {
+                                                        let interfaces = i.get_interfaces();
+                                                        if interfaces.contains(&String::from("eth0")) {
+                                                            Some(String::from("eth0"))
+                                                        } else {
+                                                            Some(String::from(interfaces[0].clone()))
+                                                        }
+                                                    };
+
+                                                    records.append(&mut i.get_records(
+                                                        &self.config.suffix,
+                                                        q_type.clone(),
+                                                        interface_name,
+                                                        true,
+                                                        Some(name.clone())
+                                                    ))
+                                                }
+                                            },
+                                            None => {
+                                                let rdata = RData::AAAA(ip.to_string().parse().unwrap());
+                                                let mut rec =
+                                                vec![Record::from_rdata(name.clone(), 3, rdata)];
+                                                records.append(&mut rec)
                                             }
+                                        }
                                     }
                                 }
                             }
@@ -454,6 +487,7 @@ impl Instance {
         q_type: RecordType,
         interface: Option<String>,
         use_original_name: bool,
+        name_overwrite: Option<Name>
     ) -> Vec<Record> {
         let records = self.get_all_records();
 
@@ -464,15 +498,21 @@ impl Instance {
                     Some(ifq) => {
                         if ifq == &ifname {
                             let n: Name;
-                            if use_original_name {
-                                n = Name::from_str(format!("{}.{}.", self.name, suffix).as_str())
-                                    .unwrap();
-                            } else {
-                                n = Name::from_str(
-                                    format!("{}.if.{}.{}.", ifq, self.name, suffix).as_str(),
-                                )
-                                .unwrap();
-                            }
+                            let n: Name = match &name_overwrite {
+                                Some(name) => name.clone().to_owned(),
+                                None => {
+                                    if use_original_name {
+                                        Name::from_str(format!("{}.{}.", self.name, suffix).as_str())
+                                            .unwrap()
+                                    } else {
+                                        Name::from_str(
+                                            format!("{}.if.{}.{}.", ifq, self.name, suffix).as_str(),
+                                        )
+                                        .unwrap()
+                                    }
+                                }
+                            };
+
                             result.push(Record::from_rdata(n.clone(), 3, rdata));
                         }
                     }
