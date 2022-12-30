@@ -28,7 +28,8 @@ pub(crate) async fn get_containers(
             match client
                 .get(format!(
                     "https://{}:{}/1.0/containers?recursion=2",
-                    config.get_fqdn(), config.bind.port
+                    config.get_fqdn(),
+                    config.bind.port
                 ))
                 .send()
                 .await
@@ -59,17 +60,16 @@ pub(crate) async fn get_containers(
                                         )
                                         .await;
 
-
-                                cache
-                                    .insert(
-                                        "instances".to_string(),
-                                        serde_json::to_string(&instances).unwrap(),
-                                    )
-                                    .await;
+                                    cache
+                                        .insert(
+                                            "instances".to_string(),
+                                            serde_json::to_string(&instances).unwrap(),
+                                        )
+                                        .await;
                                 }
 
                                 return Ok(data);
-                            },
+                            }
                             Err(error) => {
                                 tracing::error!("{}", error.to_string());
                                 return Err(anyhow!("Unable to connect to LXD"));
@@ -80,7 +80,7 @@ pub(crate) async fn get_containers(
                             return Err(anyhow!("Could not parse LXD 1.0 Response"));
                         }
                     }
-                },
+                }
                 Err(error) => {
                     tracing::error!("{}", error.to_string());
                     return Err(anyhow!("Unable to connect to LXD"));

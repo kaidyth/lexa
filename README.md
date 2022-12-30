@@ -145,12 +145,12 @@ Several options exists for querying services, and retrieving a list of IP's.
 The format of the standard serviec lookup is:
 
 ```
-[tag.].<service>.service.<prefix>
+[tag].<service>.service.<prefix>
 ```
 
 The tag parameter is option, and if provided will do result filtering. If no tag is provided, no filtering is done on the tag.
 
-As an example, if we wanted to find all `https` servers, we could query `https.service.lexa`. If we're looking for our `primary` MySQL replica, utilizing tags we could perform tag filtering by querying: `primary.mysql.service.lexa`.
+As an example, if we're looking for our `primary` MySQL replica, utilizing tags we could perform tag filtering by querying: `primary.mysql.service.lexa`.
 
 ##### RFC 2782
 
@@ -194,171 +194,101 @@ _https._tcp.service.lexa. 0       IN     SRV      1 1 80 eth0.if.c2.lexa.
 
 ### DoT
 
-Lexa supports a DNS over TLS (DoT) resolver as well if your platform requires secure DNS between your resolvers. All DNS features are supported in the DoT resolver.
+Lexa supports a DNS over TLS (DoT) resolver and all DNS features are supported by this resolver.
 
 ```
 kdig hostname.lexa @127.0.0.1 -p 18853 +tls
 ```
 
+### DoH
+
+Lexa supports DNS over HTTPS (DoH) resolver and all DNS features are supported by this resolver.
+
+### DoQ
+
+Lexa supports DNS over Quic (QoQ) resolver, and all DNS features are supported by this resolver.
+
 ## Configuration
 
-Both Lexa server and Lexa agent are configured via a HCL file. Defaults are defined in common/config.go. Lexa monitors it's configuration file, and will automatically apply and reload the server on save.
-
+Both Lexa server and Lexa agent are configured via a HCL file.
 ### Lexa Server Sample Configuration
 
 ```hcl
 server {
-  # DNS Suffix
-  suffix = "lexa"
-
-  # LXD connection configuration
   lxd {
-      # The LXD Socket connectiont o use
-      # Priority is given to sockets over host port if both are defined.
-      socket = "/var/snap/lxd/common/lxd/unix.socket"
+      suffix = "lexa"
+      bind {
+        port = 8443
+        host = "192.168.64.6"
+      }
+      certificate = "server.crt"
+      key = "pkcs8.key"
   }
 
   # Rest HTTP API configuration
   tls {
       # The TLS port to use
-      port = 18443
+      bind {
+          port = 18443
+          host = "0.0.0.0"
+        }
 
       # Whether or not use to use kernel so_resueport. Linux only
       so_resue_port = true
 
       # TLS Certificate and Key
       # If not provided, Lexa will generate a temporary one
-      certificate = "/path/to/server.crt"
-      key = "/path/to/server.key"
-
-      # Whether or not to enable Mutual TLS and require a client certificate to
-      mtls {
-          ca_certificate = false
-      }
+      certificate = "server.crt"
+      key = "pkcs8.key"
   }
 
   # DNS Server configuration
   dns {
       # The DNS port to bind to
-      port = 18053
+     bind {
+          port = 18053
+          host = "0.0.0.0"
+        }
+
+      quic {
+          bind {
+            port = 18854
+            host = "0.0.0.0"
+          }
+          certificate = "server.crt"
+           key = "pkcs8.key"
+          hostname = "lexa.kaidyth.com"
+      }
 
       # DNS DoT sub-configuration
-      tls {
-          # The DoT port to bind to
-          port = 18853
+      dot {
+         bind {
+          port = 18854
+          host = "0.0.0.0"
+        }
+          certificate = "server.crt"
+          key = "pkcs8.key"
+      }
 
-          # TLS Certificate and Key
-          # If not provided, Lexa will generate a temporary one
-          certificate = "/path/to/server.crt"
-          key = "/path/to/server.key"
+      # DNS DoH sub-configuration
+      doh {
+        bind {
+          port = 18855
+          host = "0.0.0.0"
+        }
+
+          certificate = "server.crt"
+          key = "pkcs8.key"
+          hostname = "lexa.kaidyth.com"
       }
   }
 
-  p2p {
-    # The address to bind to.
-    # Lexa/Noise CANNOT bind to a loopback or multicast address, or 0.0.0.0
-    # You must manually specify this.
-    # With socket connections it is advised to set this to either the lxdbr0 interface, or the host IP
-    bind = "192.168.64.1"
-
-    # The Noise port to bind to
-    port = 45861
-
-    # The interval that peer discovery will run.
-    # Note that this also sets a cache-timeout floor for data
-    peerScanInterval = 5
-  }
-}
-
-# Agent configuration
-# This information is exlusively used for `lexa agent`
-agent {
-  p2p {
-    # Defaults to the LXD container name, but may be overwritten manually
-    hostname = "c1"
-
-    # The address to bind to.
-    # Lexa/Noise CANNOT bind to a loopback or multicast address, or 0.0.0.0
-    # You must manually specify this.
-    # With socket connections it is advised to set this to either the lxdbr0 interface, or the host IP
-    bind = "192.168.64.1"
-
-    # The Noise port to bind to
-    port = 45861
-
-    # The interval that peer discovery will run.
-    # Note that this also sets a cache-timeout floor for data
-    peerScanInterval = 5
-
-    # An array of peers to bootstrap.
-    # Nodes won't be able to connect unless at least one bootstrap node is specified
-    # This usually will be the lxdbr0 gateway IP:<lexa_p2p_server_port>
-    # Similarily to to the bind port, this must be the actual interface
-    bootstrapPeers = [
-      "192.168.64.1:45861"
-    ]
-
-    # The interval that peer discovery will run.
-    # Note that this also sets a cache-timeout floor for data
-    peerScanInterval = 5
-  }
-
-  # Each agent can host multiple services
-  service {
-        # The name to recognize the service by
-        name = "http"
-
-        # The port
-        port = 80
-
-        # The Protocol. TCP or UDP
-        proto = "tcp"
-
-        # Any custom tags you wish to assign to the service.
-        # Lexa can aggregate tags for non RFC 2782 queries
-        tags = [
-            "app"         # app.http.service.lexa
-        ]
-        interface = "eth0" # Optional
-    }
-
-    service {
-        name = "https"
-        port = 443
-        proto = "tcp"
-        tags = [
-            "app"         # app.https.service.lexa
-        ]
-    }
-}
-```
-
-### Dynamic Interface Binding
-All `bind` configuration keys support dynamic runtime configurations via [`hashicorp/go-sockaddr/template`](https://pkg.go.dev/github.com/hashicorp/go-sockaddr/template#section-readme), and will use the first address returned by the package as the bind ip address.
-
-For instance where your container IP address may change but you need to bind it to a specific IP, the following may be used, as an example:
-
-```
-agent {
-  p2p {
-    bind = "{{ GetInterfaceIP \"enp0s2\" }}"
+  log {
+    out = "stdout"
+    level = "info"
   }
 }
 ```
-
-When using methods that return string objects instead of single IP's, use `attr "address"` to filter just the address.
-
-As an example:
-
-```
-server {
-  dns {
-    bind = "{{ GetPrivateInterfaces | attr \"address\" }}"
-  }
-}
-```
-
-Dynamic address binding is supported on all `bind` properties, and supports all features of the template package, however you must filter by only the address attribute to get a valid result.
 
 ## Commands
 
@@ -367,26 +297,6 @@ Dynamic address binding is supported on all `bind` properties, and supports all 
 Starts a new DNS, DoT, and HTTPS REST server for instance and service discovery. The server should be configured to point to your LXD instance for discovery.
 
 Usage: `lexa server --config /path/to/lexa.hcl`
-
-> By default Lexa will search for lexa.hcl in the local and home directory of the user running it if a configuration path is not defined, and will gracefully fallback to sane defaults otherwise.
-
-### Agent
-
-A local agent that runs inside your LXD container to inform the server about services running on the host.
-
-Usage: `lexa agent --config /path/to/lexa.hcl`
-
-> By default Lexa will search for lexa.hcl in the local and home directory of the user running it if a configuration path is not defined, and will gracefully fallback to sane defaults otherwise.
-
-### Cluster
-
-Cluster provides an overlay interface for querying multiple lexa backends, which you can use to loadbalancer across multiple LXD servers. Lexa cluster simply queries all known backend `lexa server` nodes, then returns an aggregated dataset, and does not translate mixed IP addresses across different LXD networks or NATs.
-
-As an example, you may use Lexa cluster if you have multiple servers running their own LXD instance, and need to know the bridge, or wireguard IP address of any node known to any backend Lexa server.
-
-Lexa Cluster exposes the same HTTP and DNS API's as `lexa server`.
-
-Usage: `lexa cluster --config /path/to/lexa.hcl`
 
 > By default Lexa will search for lexa.hcl in the local and home directory of the user running it if a configuration path is not defined, and will gracefully fallback to sane defaults otherwise.
 
@@ -484,18 +394,54 @@ lexa {
 
 > On Ubuntu, it is recommended to configure systemd-resolvd to point to CoreDNS as your primary resolver.
 
-## Limitations
+## LXD Cluster
 
-Lexa does have some limitations to be aware of when using it.
+Lexa fully supports LXD Clusters using the `cluster.<instance>.lexa` query type for A or AAAA records, which will return the external IP of the LXD host the instance is running on.
 
-### Configuration Hot Reloading
+```
+# dig cluster.instance*.lexa CNAME
 
-Experimental support is provided for hot-reloading configurations via `service.hotreload` and `agent.hotreload`. This behavior is experimental, and services may crash due to either invalid configuration entries on save. Setting these values to true will cause lexa to reload configuration on configuration file save.
+; <<>> DiG 9.18.1-1ubuntu1.2-Ubuntu <<>> cluster.instance*.lexa CNAME
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 40733
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
 
-### Agent Connectivity
+;; QUESTION SECTION:
+;cluster.instance*.lexa.		IN	CNAME
 
-Lexa utilizes `Noise` to achieve a rudimentary p2p connectivity between services. On a single machine ensure you utilize the `lxdbr0` or bridged IP's to ensure connectivity between all nodes.
+;; ANSWER SECTION:
+cluster.instance*.lexa.	3	IN	CNAME node-1.
 
-### LXD Cluster
+;; Query time: 3 msec
+;; SERVER: 127.0.0.1#53 (UDP)
+;; WHEN: Fri Dec 30 22:15:48 UTC 2022
+;; MSG SIZE  rcvd: 75
+```
 
-LXD clusters are currently untested. While the interface should work, no support is currently provided for clustered setups, and the results IP. Lexa currently cannot differentiate between ips across different hosts. When using Lexa cluster, ensure the bound addresses utilize either a bridged IP, or a shared VPN.
+For querying to work, you _MUST_ have the `location` property on each LXD node be resolvable via DNS, either by hostname, or upstream DNS. It is advised to use a tool such as a Consul to have the hostname be resolvable, and then chain with Bind9, Unbound, or CoreDNS.
+
+Once you have the DNS record of the host, you can query the instance A or AAAA record on the specific node.
+
+```
+# dig node-1.cluster.instance*.lexa A
+
+; <<>> DiG 9.18.1-1ubuntu1.2-Ubuntu <<>> node-1.cluster.instance*.lexa CNAME
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 40733
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;code-1.cluster.instance*.lexa.		IN	A
+
+;; ANSWER SECTION:
+node-1.cluster.instance*.lexa.	3	IN	A 10.0.2.1
+
+;; Query time: 3 msec
+;; SERVER: 127.0.0.1#53 (UDP)
+;; WHEN: Fri Dec 30 22:15:49 UTC 2022
+;; MSG SIZE  rcvd: 75
+```

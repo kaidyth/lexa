@@ -1,23 +1,20 @@
-use std::iter;
-use std::str::FromStr;
+use std::{iter, str::FromStr};
 
 use anyhow::anyhow;
 use rustls::{Certificate, PrivateKey};
-use std::io::BufReader;
-use std::time::Duration;
+use std::{io::BufReader, time::Duration};
 use tokio::net::{TcpListener, UdpSocket};
 use trust_dns_server::{
-    ServerFuture,
-    resolver::Name,
     authority::MessageResponseBuilder,
     client::rr::LowerName,
     proto::op::{Header, MessageType, OpCode, ResponseCode},
+    resolver::Name,
     server::{Request, RequestHandler, ResponseHandler, ResponseInfo},
+    ServerFuture,
 };
 
-use rand::thread_rng;
-use rand::seq::SliceRandom;
 use super::config::{ApplicationConfigDNS, ApplicationConfigHostPort, ApplicationConfigLXD};
+use rand::{seq::SliceRandom, thread_rng};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

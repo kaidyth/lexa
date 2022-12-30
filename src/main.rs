@@ -33,7 +33,5 @@ async fn main() {
 
     match &cfg.cmd {
         Server(command) => command.run(&cfg).await,
-        //Agent(command) => command.run(&cfg).await,
-        //Cluster(command) => command.run(&cfg).await,
     }
 }

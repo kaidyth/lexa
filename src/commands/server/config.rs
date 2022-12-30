@@ -210,7 +210,7 @@ impl ApplicationConfigLXD {
     pub fn get_fqdn(&self) -> String {
         match IpAddr::from_str(&self.bind.host) {
             Ok(_) => String::from("local.lexa.kaidyth.com"),
-            Err(_) => String::from(&self.bind.host)
+            Err(_) => String::from(&self.bind.host),
         }
     }
 

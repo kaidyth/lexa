@@ -85,14 +85,16 @@ impl Config {
         let rocket = tokio::spawn(async move {});
         tasks.push(rocket);
 
-        let server = match dns::Server::init(self.config_data.dns.clone(), self.config_data.lxd.clone()).await
-        {
-            Ok(server) => server,
-            Err(error) => {
-                println!("{}", error.to_string());
-                exit(1);
-            }
-        };
+        let server =
+            match dns::Server::init(self.config_data.dns.clone(), self.config_data.lxd.clone())
+                .await
+            {
+                Ok(server) => server,
+                Err(error) => {
+                    println!("{}", error.to_string());
+                    exit(1);
+                }
+            };
 
         let dns = tokio::spawn(async move {
             #[allow(unused_must_use)]

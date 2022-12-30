@@ -46,7 +46,7 @@ extended-description = """Lexa provides instance and service discovery for LXD c
 depends = "$auto"
 section = "utility"
 priority = "optional"
-revision = "___REVISION___"
+revision = "alpha3"
 assets = [
     ["target/release/lexa", "usr/local/bin/", "755"],
     ["README.md", "usr/share/doc/lexa/README", "644"],

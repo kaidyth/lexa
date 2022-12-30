@@ -54,6 +54,35 @@ pub struct ServiceQueryData {
     pub protocol: Option<String>,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ServiceQueryProtocol {
+    Tcp,
+    Udp,
+}
+
+impl ServiceQueryData {
+    /// Returns true if the data is a tag
+    pub fn is_tag(&self) -> bool {
+        return self.tag.is_some();
+    }
+
+    /// Returns retur if it is a service query
+    pub fn is_service(&self) -> bool {
+        return self.service.is_some();
+    }
+
+    /// Returns the protocol as an enum
+    pub fn get_protocol(&self) -> Option<ServiceQueryProtocol> {
+        match &self.protocol {
+            Some(p) => match p.as_str() {
+                "_tcp" => Some(ServiceQueryProtocol::Tcp),
+                "_udp" => Some(ServiceQueryProtocol::Udp),
+                _ => None,
+            },
+            None => None,
+        }
+    }
+}
 impl Query {
     /// Returns a new query
     pub fn new(name: String, config: ApplicationConfigLXD) -> Self {
@@ -89,8 +118,13 @@ impl Query {
                 // Returns an interface specific response
                 QueryType::Interface => {
                     let interface_name = self.get_interface_name();
-                    let mut results =
-                        i.get_records(&self.config.suffix, q_type.clone(), interface_name, false, None);
+                    let mut results = i.get_records(
+                        &self.config.suffix,
+                        q_type.clone(),
+                        interface_name,
+                        false,
+                        None,
+                    );
                     records.append(&mut results);
                 }
                 // Returns `eth0` or the first network interface provided by LXD API
@@ -109,7 +143,7 @@ impl Query {
                         q_type.clone(),
                         interface_name,
                         true,
-                        None
+                        None,
                     ))
                 }
                 // Return the cluster location
@@ -117,7 +151,7 @@ impl Query {
                     let pieces = self.get_query_pieces();
                     let mut node: Option<String> = None;
                     if pieces.len() >= 3 {
-                        let fqdn = pieces[0..pieces.len()-2].join(".");
+                        let fqdn = pieces[0..pieces.len() - 2].join(".");
                         node = Some(fqdn);
                     }
                     match lookup_host(&i.data.location) {
@@ -136,10 +170,14 @@ impl Query {
                                                 if node == i.data.location.as_str() {
                                                     let interface_name = {
                                                         let interfaces = i.get_interfaces();
-                                                        if interfaces.contains(&String::from("eth0")) {
+                                                        if interfaces
+                                                            .contains(&String::from("eth0"))
+                                                        {
                                                             Some(String::from("eth0"))
                                                         } else {
-                                                            Some(String::from(interfaces[0].clone()))
+                                                            Some(String::from(
+                                                                interfaces[0].clone(),
+                                                            ))
                                                         }
                                                     };
 
@@ -148,14 +186,18 @@ impl Query {
                                                         q_type.clone(),
                                                         interface_name,
                                                         true,
-                                                        Some(name.clone())
+                                                        Some(name.clone()),
                                                     ))
                                                 }
-                                            },
+                                            }
                                             None => {
-                                                let rdata = RData::A(ip.to_string().parse().unwrap());
-                                                let mut rec =
-                                                vec![Record::from_rdata(name.clone(), 3, rdata)];
+                                                let rdata =
+                                                    RData::A(ip.to_string().parse().unwrap());
+                                                let mut rec = vec![Record::from_rdata(
+                                                    name.clone(),
+                                                    3,
+                                                    rdata,
+                                                )];
                                                 records.append(&mut rec)
                                             }
                                         }
@@ -170,10 +212,14 @@ impl Query {
                                                 if node == i.data.location.as_str() {
                                                     let interface_name = {
                                                         let interfaces = i.get_interfaces();
-                                                        if interfaces.contains(&String::from("eth0")) {
+                                                        if interfaces
+                                                            .contains(&String::from("eth0"))
+                                                        {
                                                             Some(String::from("eth0"))
                                                         } else {
-                                                            Some(String::from(interfaces[0].clone()))
+                                                            Some(String::from(
+                                                                interfaces[0].clone(),
+                                                            ))
                                                         }
                                                     };
 
@@ -182,14 +228,18 @@ impl Query {
                                                         q_type.clone(),
                                                         interface_name,
                                                         true,
-                                                        Some(name.clone())
+                                                        Some(name.clone()),
                                                     ))
                                                 }
-                                            },
+                                            }
                                             None => {
-                                                let rdata = RData::AAAA(ip.to_string().parse().unwrap());
-                                                let mut rec =
-                                                vec![Record::from_rdata(name.clone(), 3, rdata)];
+                                                let rdata =
+                                                    RData::AAAA(ip.to_string().parse().unwrap());
+                                                let mut rec = vec![Record::from_rdata(
+                                                    name.clone(),
+                                                    3,
+                                                    rdata,
+                                                )];
                                                 records.append(&mut rec)
                                             }
                                         }
@@ -207,16 +257,107 @@ impl Query {
                     let (service_query_type, service_query_data) =
                         self.get_service_type_and_data(q_type)?;
 
+                    let query_proto = match service_query_data.get_protocol() {
+                        Some(q) => q,
+                        None => ServiceQueryProtocol::Tcp,
+                    };
+
+                    let service_name = match &service_query_data.service {
+                        Some(s) => s.replace("_", ""),
+                        None => String::from(""),
+                    };
+
+                    let tag = match &service_query_data.tag {
+                        Some(t) => t.to_owned(),
+                        None => String::from(""),
+                    };
+
+                    let interface_name = {
+                        let interfaces = i.get_interfaces();
+                        if interfaces.contains(&String::from("eth0")) {
+                            String::from("eth0")
+                        } else {
+                            String::from(interfaces[0].clone())
+                        }
+                    };
+
                     match i.get_service_config() {
                         Some(service_config) => {
                             for service in service_config {
                                 match service_query_type {
                                     ServiceQueryType::RFC2782 => {
-                                        // This is either going to be a <tag>._proto.service.lexa  or a _service._proto.service.lexa
-                                        // And we're going to return an SRV Record
+                                        let proto = match service.proto.as_str() {
+                                            "_tcp" => ServiceQueryProtocol::Tcp,
+                                            "_udp" => ServiceQueryProtocol::Udp,
+                                            _ => ServiceQueryProtocol::Tcp,
+                                        };
+
+                                        if service_query_data.is_tag() {
+                                            // _<service>._<proto>.service.lexa
+                                            let tags = match service.tags {
+                                                Some(tags) => tags,
+                                                None => Vec::<String>::new(),
+                                            };
+
+                                            if tags.contains(&tag) && query_proto.eq(&proto) {
+                                                let n = Name::from_str(
+                                                    format!(
+                                                        "{}.if.{}.{}",
+                                                        &interface_name,
+                                                        &i.name,
+                                                        &self.config.suffix
+                                                    )
+                                                    .as_str(),
+                                                )
+                                                .unwrap();
+                                                let rdata = RData::SRV(SRV::new(
+                                                    1,
+                                                    1,
+                                                    service.port as u16,
+                                                    n,
+                                                ));
+
+                                                let mut rec = vec![Record::from_rdata(
+                                                    name.clone(),
+                                                    3,
+                                                    rdata,
+                                                )];
+                                                records.append(&mut rec);
+                                            }
+                                        } else {
+                                            // <tag>._<proto>.service.lexa
+                                            if service_name == service.name
+                                                && query_proto.eq(&proto)
+                                            {
+                                                let n = Name::from_str(
+                                                    format!(
+                                                        "{}.if.{}.{}",
+                                                        &interface_name,
+                                                        &i.name,
+                                                        &self.config.suffix
+                                                    )
+                                                    .as_str(),
+                                                )
+                                                .unwrap();
+                                                let rdata = RData::SRV(SRV::new(
+                                                    1,
+                                                    1,
+                                                    service.port as u16,
+                                                    n,
+                                                ));
+
+                                                let mut rec = vec![Record::from_rdata(
+                                                    name.clone(),
+                                                    3,
+                                                    rdata,
+                                                )];
+                                                records.append(&mut rec);
+                                            }
+                                        }
                                     }
                                     ServiceQueryType::Tagged => {
                                         // This will be <tag>.<service>.service.lexa or <service>.lexa and we are going to return either an A or AAAA record
+                                        // Unimplemented by design
                                     }
                                 }
                             }
@@ -487,7 +628,7 @@ impl Instance {
         q_type: RecordType,
         interface: Option<String>,
         use_original_name: bool,
-        name_overwrite: Option<Name>
+        name_overwrite: Option<Name>,
     ) -> Vec<Record> {
         let records = self.get_all_records();
 
@@ -502,11 +643,14 @@ impl Instance {
                                 Some(name) => name.clone().to_owned(),
                                 None => {
                                     if use_original_name {
-                                        Name::from_str(format!("{}.{}.", self.name, suffix).as_str())
-                                            .unwrap()
+                                        Name::from_str(
+                                            format!("{}.{}.", self.name, suffix).as_str(),
+                                        )
+                                        .unwrap()
                                     } else {
                                         Name::from_str(
-                                            format!("{}.if.{}.{}.", ifq, self.name, suffix).as_str(),
+                                            format!("{}.if.{}.{}.", ifq, self.name, suffix)
+                                                .as_str(),
                                         )
                                         .unwrap()
                                     }
