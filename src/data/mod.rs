@@ -2,7 +2,7 @@ use crate::commands::server::config::ApplicationConfigLXD;
 use anyhow::anyhow;
 
 pub(crate) mod containers_full;
-mod data;
+pub(crate) mod data;
 pub(crate) use data::Query;
 
 pub(crate) async fn get_containers(

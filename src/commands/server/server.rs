@@ -1,6 +1,6 @@
 use crate::commands::server::dns;
 
-use super::config::ApplicationConfig;
+use super::{config::ApplicationConfig, rocket};
 use clap::Parser;
 use serde_json::Value;
 
@@ -82,7 +82,19 @@ impl Config {
         // Setup tokio threads for the HTTP server and the DNS server
         let mut tasks = Vec::new();
 
-        let rocket = tokio::spawn(async move {});
+        let rocket_server = rocket::Server::init(
+            self.config_data.tls.clone(),
+            self.config_data.lxd.clone(),
+            self.config_data.log.level.clone(),
+        );
+
+        let rocket = tokio::spawn(async move {
+            #[allow(unused_must_use)]
+            {
+                rocket_server.run().await;
+            };
+        });
+
         tasks.push(rocket);
 
         let server =
@@ -112,6 +124,7 @@ impl Config {
         }
     }
 
+    /// Retrieves the configuration file from disk
     fn get_config_file<'a>(&'a self) -> std::result::Result<ApplicationConfig, anyhow::Error> {
         if let Ok(config) = std::fs::read_to_string(&self.config) {
             if let Ok(hcl) = hcl::from_str::<Value>(&config.as_str()) {

@@ -1,7 +1,7 @@
 mod commands;
 mod data;
+extern crate rocket;
 extern crate tokio;
-
 mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
@@ -10,9 +10,11 @@ use commands::state::SubCommand::*;
 
 use async_once_cell::OnceCell;
 use moka::future::Cache;
+
 pub(crate) static CACHE: OnceCell<
     Option<Box<Cache<String, String, std::collections::hash_map::RandomState>>>,
 > = OnceCell::new();
+
 /// Vaulted storage secrets for your teams, apps, and servers.
 #[tokio::main]
 async fn main() {
