@@ -1,15 +1,29 @@
 extern crate rocket;
 
-use crate::{commands::server::config::ApplicationConfigLXD, data::Query};
+use crate::{
+    commands::server::config::ApplicationConfigLXD,
+    data::{data::InstanceSimple, Query},
+};
 use rocket::{get, serde::json::Json, State};
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Instance {}
+#[get("/?<name>")]
+pub async fn list(
+    name: Option<&str>,
+    lxd: &State<ApplicationConfigLXD>,
+) -> Json<Vec<InstanceSimple>> {
+    let n = match name {
+        Some(n) => match n {
+            "" => String::from("*"),
+            _ => String::from(n),
+        },
+        None => String::from("*"),
+    };
 
-#[get("/")]
-pub fn list(lxd: &State<ApplicationConfigLXD>) -> Json<Vec<Instance>> {
-    let instances = Vec::<Instance>::new();
+    let mut query = Query::new(n, lxd.into());
 
-    return Json(instances);
+    match query.get_api_data_for_query().await {
+        Ok(d) => return Json(d),
+        Err(_) => return Json(Vec::<InstanceSimple>::new()),
+    }
 }

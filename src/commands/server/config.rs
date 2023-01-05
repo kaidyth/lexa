@@ -27,6 +27,20 @@ pub struct ApplicationConfigLXD {
     pub key: String,
 }
 
+impl From<&rocket::State<ApplicationConfigLXD>> for ApplicationConfigLXD {
+    fn from(item: &rocket::State<ApplicationConfigLXD>) -> Self {
+        ApplicationConfigLXD {
+            suffix: item.suffix.clone(),
+            certificate: item.certificate.clone(),
+            key: item.key.clone(),
+            bind: ApplicationConfigHostPort {
+                host: item.bind.host.clone(),
+                port: item.bind.port.clone(),
+            },
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ApplicationConfigTLS {
     pub bind: ApplicationConfigHostPort,

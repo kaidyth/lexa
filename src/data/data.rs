@@ -11,10 +11,72 @@ use trust_dns_server::{
     resolver::Name,
 };
 
-#[derive(Debug, Clone)]
+/// Represents a instance with the raw container data
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Instance {
     pub name: String,
     pub data: crate::data::containers_full::Metadaum,
+}
+
+/// A simplified instance for API calls, containing
+impl From<Instance> for InstanceSimple {
+    fn from(item: Instance) -> Self {
+        Self {
+            name: item.name.clone(),
+            architecture: item.data.architecture.clone(),
+            services: item.get_service_config(),
+            status: item.data.status.clone(),
+            created_at: item.data.created_at.clone(),
+            last_used_at: item.data.last_used_at.clone(),
+            location: item.data.location.clone(),
+            container_type: item.data.type_field.clone(),
+            names: {
+                let mut names = Vec::<String>::new();
+
+                // Add the raw name of the container
+                names.push(item.name.clone());
+
+                // Add the interface names
+                let network = item.data.state.network.clone().unwrap();
+                for (ifname, network) in &network {
+                    for address in &network.addresses {
+                        if address.scope != "local" {
+                            let n = format!("{}.if.{}", ifname.to_owned(), item.name.clone());
+                            if !names.contains(&n) {
+                                names.push(n);
+                            }
+                        }
+                    }
+                }
+
+                // If there is a location, add the cluster
+                if item.data.location.clone() != String::from("") {
+                    let n = format!(
+                        "{}.cluster.{}",
+                        item.data.location.clone(),
+                        item.name.clone()
+                    );
+                    names.push(n);
+                }
+
+                names
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InstanceSimple {
+    pub name: String,
+    pub architecture: String,
+    pub services: Option<Vec<InstanceService>>,
+    pub status: String,
+    pub created_at: String,
+    pub last_used_at: String,
+    pub location: String,
+    #[serde(rename = "type")]
+    pub container_type: String,
+    pub names: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +164,22 @@ impl Query {
             },
             None => return Err(anyhow!("Unable to retrieve cache.")),
         }
+    }
+
+    pub async fn get_api_data_for_query(&mut self) -> Result<Vec<InstanceSimple>, anyhow::Error> {
+        let instances = self.get_instances().await?;
+        let mut simple: Vec<InstanceSimple> = Vec::<InstanceSimple>::new();
+        for i in instances {
+            let mut d: InstanceSimple = i.into();
+
+            d.names = d
+                .names
+                .iter()
+                .map(|n| format!("{}.{}", n, self.config.suffix))
+                .collect();
+            simple.push(d);
+        }
+        return Ok(simple);
     }
 
     /// Returns all IPS address for the given query
