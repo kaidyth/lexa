@@ -128,7 +128,8 @@ impl ServiceQueryData {
         return self.tag.is_some();
     }
 
-    /// Returns retur if it is a service query
+    #[allow(dead_code)]
+    /// Returns if it is a service query
     pub fn is_service(&self) -> bool {
         return self.service.is_some();
     }
@@ -716,7 +717,6 @@ impl Instance {
                 match &interface {
                     Some(ifq) => {
                         if ifq == &ifname {
-                            let n: Name;
                             let n: Name = match &name_overwrite {
                                 Some(name) => name.clone().to_owned(),
                                 None => {

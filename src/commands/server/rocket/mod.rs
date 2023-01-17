@@ -42,7 +42,7 @@ impl Server {
 
                 return Err(anyhow!("Could not start TLS server."));
             }
-            Err(error) => return Err(anyhow!("Unable to start TLS web server.")),
+            Err(_) => return Err(anyhow!("Unable to start TLS web server.")),
         }
     }
 

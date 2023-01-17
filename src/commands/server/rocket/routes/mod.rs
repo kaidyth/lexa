@@ -5,8 +5,6 @@ use crate::{
     data::{data::InstanceSimple, Query},
 };
 use rocket::{get, serde::json::Json, State};
-use serde::{Deserialize, Serialize};
-
 #[get("/?<name>")]
 pub async fn list(
     name: Option<&str>,
