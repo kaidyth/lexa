@@ -27,7 +27,7 @@ pub(crate) async fn get_containers(
 
             match client
                 .get(format!(
-                    "https://{}:{}/1.0/containers?recursion=2",
+                    "https://{}:{}/1.0/instances?recursion=2&instance-type=container",
                     config.get_fqdn(),
                     config.bind.port
                 ))
